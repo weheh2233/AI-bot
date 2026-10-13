@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 import httpx
@@ -6,7 +7,7 @@ from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
 WEB_DIR = Path(__file__).parent
-BACKEND_URL = "http://127.0.0.1:8000"
+BACKEND_URL = os.getenv("BACKEND_URL", "http://127.0.0.1:8000").rstrip("/")
 
 app = FastAPI(title="AI-bot Web Demo")
 
