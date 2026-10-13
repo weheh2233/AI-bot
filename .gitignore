@@ -1,0 +1,10 @@
+.env
+.idea/
+.pytest_cache/
+.ruff_cache/
+.venv/
+__pycache__/
+*.egg-info/
+*.py[cod]
+uploads/
+启动命令
