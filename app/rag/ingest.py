@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from app.embeddings import EMBED_BATCH_SIZE, get_embeddings
 from app.models import Document, DocumentChunk
 from app.rag.loader import extract_segments
-from app.rag.splitter import split_segments
+from app.rag.splitter import  route_file_type
 
 
 class EmptyDocumentError(Exception):
@@ -27,7 +27,7 @@ def ingest_file(
 ) -> Document:
     """解析 → 段内切分 → 批量 embedding → 建 Document + chunks，单事务提交。"""
     segments = extract_segments(filename, data)
-    chunks = split_segments(segments)
+    chunks = route_file_type(segments)
     if not chunks:
         raise EmptyDocumentError(f"「{filename}」没有解析出可用文本")
 
