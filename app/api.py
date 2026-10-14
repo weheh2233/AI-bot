@@ -1,6 +1,7 @@
 import json
+import time
 from contextlib import asynccontextmanager
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Literal
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request
@@ -47,6 +48,8 @@ class ResumeRequest(BaseModel):
 class ConversationMessage(BaseModel):
     role: Literal["user", "assistant"]
     content: str
+    timestamp: datetime | None = None
+    elapsed: float | None = None
 
 
 class ConversationSummary(BaseModel):
@@ -126,7 +129,9 @@ def _content_text(content) -> str:
     return "".join(parts).strip()
 
 
-def _conversation_messages(snapshot) -> list[ConversationMessage]:
+def _conversation_messages(
+    snapshot, timestamp: datetime | None = None
+) -> list[ConversationMessage]:
     messages: list[ConversationMessage] = []
     for message in snapshot.values.get("messages", []):
         if isinstance(message, HumanMessage):
@@ -142,8 +147,42 @@ def _conversation_messages(snapshot) -> list[ConversationMessage]:
 
         content = _content_text(message.content)
         if content:
-            messages.append(ConversationMessage(role=role, content=content))
+            stored_timestamp = message.additional_kwargs.get("timestamp", timestamp)
+            stored_elapsed = message.additional_kwargs.get("elapsed")
+            messages.append(
+                ConversationMessage(
+                    role=role,
+                    content=content,
+                    timestamp=stored_timestamp,
+                    elapsed=stored_elapsed if role == "assistant" else None,
+                )
+            )
     return messages
+
+
+def _timed_user_message(content: str) -> HumanMessage:
+    return HumanMessage(
+        content=content,
+        additional_kwargs={"timestamp": datetime.now(timezone.utc).isoformat()},
+    )
+
+
+def _store_assistant_timing(agent, config: dict, elapsed: float) -> None:
+    """Replace the latest assistant message with timing metadata in the checkpoint."""
+    snapshot = agent.get_state(config)
+    for message in reversed(snapshot.values.get("messages", [])):
+        if not isinstance(message, AIMessage) or not _content_text(message.content):
+            continue
+        metadata = {
+            **message.additional_kwargs,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "elapsed": elapsed,
+        }
+        agent.update_state(
+            config,
+            {"messages": [message.model_copy(update={"additional_kwargs": metadata})]},
+        )
+        return
 
 
 def _short_text(value: str, limit: int) -> str:
@@ -284,7 +323,9 @@ def get_conversation(
     pending = _snapshot_interrupt_payload(snapshot) or {}
     return ConversationDetail(
         **summary.model_dump(),
-        messages=_conversation_messages(snapshot),
+        # 新消息从 additional_kwargs 读取逐条时间；旧 checkpoint 没有该字段时，
+        # 回退到会话最新 checkpoint 时间，兼容已有历史数据。
+        messages=_conversation_messages(snapshot, timestamp=updated_at),
         action_requests=pending.get("action_requests", []),
         review_configs=pending.get("review_configs", []),
     )
@@ -378,15 +419,18 @@ def chat(
     request: Request,
     current: User = Depends(get_current_user),
 ):
-    payload = {"messages": [{"role": "user", "content": req.message}]}
+    payload = {"messages": [_timed_user_message(req.message)]}
     config = _config(current, req.thread_id)
+    start_time = time.perf_counter()
     result = request.app.state.agent.invoke(payload, config, context=_context(current))
 
     pending = _interrupt_payload(result)
     if pending:
         # 命中人工审批：不是错误，但本轮没有最终回复，用 202 与正常完成区分
         return JSONResponse(pending, status_code=202)
-    return {"reply": result["messages"][-1].content}
+    elapsed = round(time.perf_counter() - start_time, 2)
+    _store_assistant_timing(request.app.state.agent, config, elapsed)
+    return {"reply": result["messages"][-1].content, "elapsed": elapsed}
 
 
 @app.post("/chat/resume")
@@ -396,6 +440,7 @@ def chat_resume(
     current: User = Depends(get_current_user),
 ):
     config = _config(current, req.thread_id)
+    start_time = time.perf_counter()
     result = request.app.state.agent.invoke(
         Command(resume={"decisions": req.decisions}),
         config,
@@ -406,7 +451,9 @@ def chat_resume(
     if pending:
         # 一轮可能有多个工具调用待审批，全部决策完才会继续
         return JSONResponse(pending, status_code=202)
-    return {"reply": result["messages"][-1].content}
+    elapsed = round(time.perf_counter() - start_time, 2)
+    _store_assistant_timing(request.app.state.agent, config, elapsed)
+    return {"reply": result["messages"][-1].content, "elapsed": elapsed}
 
 
 @app.post("/chat/stream")
@@ -416,11 +463,13 @@ def chat_stream(
     current: User = Depends(get_current_user),
 ):
     agent = request.app.state.agent
-    payload = {"messages": [{"role": "user", "content": req.message}]}
+    payload = {"messages": [_timed_user_message(req.message)]}
     config = _config(current, req.thread_id)
     context = _context(current)
 
     def event_gen():
+        start_time = time.perf_counter()
+        interrupted = False
         for chunk, meta in agent.stream(
             payload, config, context=context, stream_mode="messages"
         ):
@@ -449,7 +498,13 @@ def chat_stream(
                 # 加上 media_type="text/event-stream" 这个声明，FastAPI 就知道"我返回的是一串 SSE 事件流"。
                 #yield就是返回一个值然后暂停加断点，下次能从暂停处继续，不像return返回一个值就结束
                 yield f"data: {json.dumps(pending, ensure_ascii=False)}\n\n"
+                interrupted = True
                 break
+
+        elapsed = round(time.perf_counter() - start_time, 2)
+        if not interrupted:
+            _store_assistant_timing(agent, config, elapsed)
+        yield f"data: {{\"type\": \"done\", \"elapsed\": {elapsed}}}\n\n"
         yield "data: [DONE]\n\n"
 
     return StreamingResponse(event_gen(), media_type="text/event-stream")
