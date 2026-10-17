@@ -13,3 +13,10 @@
 7、人在回路弹窗没有other选项
 8、人在回路弹窗不选就无法关闭也无法切换对话，但通过刷新页面可解决
 9、前端切换登录用户时没有清空上一位用户的界面状态，旧聊天消息、会话标题和待审批操作可能继续显示，造成跨用户信息泄漏。修复方案：退出及登录成功时统一重置 threadId、标题、消息 DOM、输入框、审批弹窗、资料列表和历史列表，再加载当前用户的数据。
+10、记忆注入的向量检索没有缓存。bot.py 的 system_prompt 是 dynamic_prompt（wrap_model_call），每次主模型节点被调用都会执行一次 store.search(query=...)。
+    一轮里只要模型调了工具（模型→工具→模型），主模型节点就跑两次，而 query 取的是最近一条 HumanMessage，两次完全相同，白花一次 embedding 调用和一次向量查询。
+    修复方案：按"本轮 query"缓存检索结果，同一轮同一 query 只检索一次。缓存键和失效时机（新一轮用户消息到来即失效）需要设计，且要避免跨用户串缓存。
+11、普通记忆的 LRU 淘汰有漏洞。_evict_memories 靠 updated_at 判断最久未用，但只有 get_user_memories 工具命中后会 store.put 回写刷新时间；
+    system_prompt 里每轮注入命中的记忆没有回写。所以一条天天被注入、却从没被工具调用过的记忆，updated_at 一直停在保存时，超过 MAX_MEMORIES=50 条时会被当成最久未用误淘汰。
+    修复方案：system_prompt 注入命中后对 hits 回写一次，与 get_user_memories 保持一致。注意回写会触发重新 embedding，要和第 10 条的缓存一起考虑，避免每次模型调用都回写。
+12。title漂移：summarization中间件会把之前的要总结的上下文缩略成用户文本
