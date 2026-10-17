@@ -357,8 +357,16 @@ def _content_text(content) -> str:
 def _conversation_messages(
     snapshot, timestamp: datetime | None = None
 ) -> list[ConversationMessage]:
+    return _conversation_messages_from_list(
+        snapshot.values.get("messages", []), timestamp=timestamp
+    )
+
+
+def _conversation_messages_from_list(
+    raw_messages, timestamp: datetime | None = None
+) -> list[ConversationMessage]:
     messages: list[ConversationMessage] = []
-    for message in snapshot.values.get("messages", []):
+    for message in raw_messages:
         if isinstance(message, HumanMessage):
             # SummarizationMiddleware 把摘要以 HumanMessage 形式插进历史，它不是用户
             # 说的话，不能出现在会话记录里。
@@ -383,6 +391,87 @@ def _conversation_messages(
                 )
             )
     return messages
+
+
+def _history_message_key(message) -> str:
+    """给 checkpoint 历史中的消息生成稳定去重键。"""
+    message_id = getattr(message, "id", None)
+    if message_id:
+        return f"id:{message_id}"
+    # LangChain 正常会给消息分配 id；这个回退主要兼容旧 checkpoint 或测试快照。
+    return "fallback:" + repr(
+        (
+            type(message).__name__,
+            getattr(message, "content", None),
+            getattr(message, "additional_kwargs", {}).get("timestamp"),
+        )
+    )
+
+
+def _summary_fingerprint(messages) -> tuple:
+    """返回当前摘要消息的指纹，用来区分摘要压缩和普通删除。"""
+    return tuple(
+        (
+            _history_message_key(message),
+            repr(getattr(message, "content", None)),
+        )
+        for message in messages
+        if isinstance(message, HumanMessage)
+        and message.additional_kwargs.get("lc_source") == "summarization"
+    )
+
+
+def _conversation_messages_from_history(
+    agent, config: dict, snapshot, timestamp: datetime | None = None
+) -> list[ConversationMessage]:
+    """从 checkpoint 历史重建完整展示记录，不改变模型实际使用的 state。
+
+    SummarizationMiddleware 会从最新 state 移除旧消息，但摘要前的 checkpoint 仍然
+    保留它们。这里按时间顺序合并各个 state；摘要造成的移除保留，重新生成等显式
+    删除则按 state 的差异生效，避免把用户已经删掉的消息恢复出来。
+    """
+    try:
+        snapshots = list(agent.get_state_history(config))
+    except Exception:  # noqa: BLE001 - 历史读取失败时回退到当前 state，保证接口可用
+        # 历史查询失败时仍返回当前 state，不能让会话详情接口整体不可用。
+        return _conversation_messages(snapshot, timestamp=timestamp)
+
+    if not snapshots:
+        return _conversation_messages(snapshot, timestamp=timestamp)
+
+    messages_by_key: dict[str, object] = {}
+    ordered_keys: list[str] = []
+    deleted_keys: set[str] = set()
+    previous_keys: set[str] = set()
+    previous_summary: tuple = ()
+
+    # get_state_history 按最新到最旧返回，展示历史需要反过来处理。
+    for history_snapshot in reversed(snapshots):
+        raw_messages = list(history_snapshot.values.get("messages", []))
+        current_keys = {_history_message_key(message) for message in raw_messages}
+        current_summary = _summary_fingerprint(raw_messages)
+
+        # 新增或更新摘要时，消失的消息是“被压缩”，不能视为用户删除。
+        summary_changed = bool(current_summary) and current_summary != previous_summary
+        if previous_keys and not summary_changed:
+            deleted_keys.update(previous_keys - current_keys)
+
+        for message in raw_messages:
+            key = _history_message_key(message)
+            if key not in ordered_keys:
+                ordered_keys.append(key)
+            # 后续 checkpoint 可能补充 elapsed/timestamp，使用最新版本的消息对象。
+            messages_by_key[key] = message
+
+        previous_keys = current_keys
+        previous_summary = current_summary
+
+    merged_messages = [
+        messages_by_key[key]
+        for key in ordered_keys
+        if key not in deleted_keys
+    ]
+    return _conversation_messages_from_list(merged_messages, timestamp=timestamp)
 
 
 def _timed_user_message(content: str) -> HumanMessage:
@@ -463,8 +552,9 @@ def _conversation_summary(
     snapshot,
     title: str,
     conversation: Conversation | None = None,
+    messages: list[ConversationMessage] | None = None,
 ) -> ConversationSummary:
-    messages = _conversation_messages(snapshot)
+    messages = messages if messages is not None else _conversation_messages(snapshot)
     preview = messages[-1].content if messages else "这个会话还没有可展示的消息"
     return ConversationSummary(
         thread_id=thread_id,
@@ -484,7 +574,7 @@ def _derive_title(messages: list[ConversationMessage]) -> str | None:
 
 
 def _fixed_title(db: Session, thread_id: str, internal_thread_id: str, owner_id: int,
-                 snapshot) -> Conversation | None:
+                 snapshot, messages: list[ConversationMessage] | None = None) -> Conversation | None:
     """返回会话标题，首次出现用户消息时派生并落库固定。
 
     之后只读不再改写，避免历史压缩把首条用户消息挤出 state 后标题漂移。
@@ -498,7 +588,9 @@ def _fixed_title(db: Session, thread_id: str, internal_thread_id: str, owner_id:
             db.commit()
         return row
 
-    title = _derive_title(_conversation_messages(snapshot))
+    title = _derive_title(
+        messages if messages is not None else _conversation_messages(snapshot)
+    )
     if title is None:
         # 还没有用户消息（例如仅存在中断），此时不固定标题，等有消息再定
         return None
@@ -721,13 +813,20 @@ def list_conversations(
     conversations: list[ConversationSummary] = []
     for internal_thread_id, updated_at in rows:
         thread_id = internal_thread_id.removeprefix(internal_prefix)
-        snapshot = request.app.state.agent.get_state(_config(current, thread_id))
-        conversation = _fixed_title(db, thread_id, internal_thread_id, current.id, snapshot)
+        config = _config(current, thread_id)
+        snapshot = request.app.state.agent.get_state(config)
+        messages = _conversation_messages_from_history(
+            request.app.state.agent, config, snapshot, timestamp=updated_at
+        )
+        conversation = _fixed_title(
+            db, thread_id, internal_thread_id, current.id, snapshot, messages
+        )
         conversations.append(
             _conversation_summary(
                 thread_id, updated_at, snapshot,
                 conversation.title if conversation is not None else "新会话",
                 conversation,
+                messages,
             )
         )
     return conversations
@@ -769,8 +868,14 @@ def search_conversations(
     results = []
     for row in matches[:50]:
         thread_id = row.thread_id.removeprefix(f"user-{current.id}:")
-        snapshot = request.app.state.agent.get_state(_config(current, thread_id))
-        summary = _conversation_summary(thread_id, row.updated_at, snapshot, row.title, row)
+        config = _config(current, thread_id)
+        snapshot = request.app.state.agent.get_state(config)
+        messages = _conversation_messages_from_history(
+            request.app.state.agent, config, snapshot, timestamp=row.updated_at
+        )
+        summary = _conversation_summary(
+            thread_id, row.updated_at, snapshot, row.title, row, messages
+        )
         results.append(
             ConversationSearchResult(
                 **summary.model_dump(),
@@ -804,16 +909,24 @@ def get_conversation(
     if updated_at is None:
         raise HTTPException(status_code=404, detail="会话不存在")
 
-    snapshot = request.app.state.agent.get_state(_config(current, thread_id))
-    conversation = _fixed_title(db, thread_id, internal_thread_id, current.id, snapshot)
+    config = _config(current, thread_id)
+    snapshot = request.app.state.agent.get_state(config)
+    messages = _conversation_messages_from_history(
+        request.app.state.agent, config, snapshot, timestamp=updated_at
+    )
+    conversation = _fixed_title(
+        db, thread_id, internal_thread_id, current.id, snapshot, messages
+    )
     title = conversation.title if conversation is not None else "新会话"
-    summary = _conversation_summary(thread_id, updated_at, snapshot, title, conversation)
+    summary = _conversation_summary(
+        thread_id, updated_at, snapshot, title, conversation, messages
+    )
     pending = _snapshot_interrupt_payload(snapshot) or {}
     return ConversationDetail(
         **summary.model_dump(),
         # 新消息从 additional_kwargs 读取逐条时间；旧 checkpoint 没有该字段时，
         # 回退到会话最新 checkpoint 时间，兼容已有历史数据。
-        messages=_conversation_messages(snapshot, timestamp=updated_at),
+        messages=messages,
         action_requests=pending.get("action_requests", []),
         review_configs=pending.get("review_configs", []),
     )
