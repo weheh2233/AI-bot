@@ -31,6 +31,9 @@ class User(Base):
     is_admin: Mapped[bool] = mapped_column(
         default=False, server_default=text("false")
     )
+    default_persona_id: Mapped[int | None] = mapped_column(
+        ForeignKey("personas.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -53,8 +56,69 @@ class Conversation(Base):
         ForeignKey("users.id", ondelete="CASCADE"), index=True
     )
     title: Mapped[str] = mapped_column(String(255))
+    persona_id: Mapped[int | None] = mapped_column(
+        ForeignKey("personas.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    persona_version: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # 会话使用的角色快照。角色表后续修改或删除都不影响已有会话。
+    persona_snapshot: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    is_favorite: Mapped[bool] = mapped_column(
+        default=False, server_default=text("false"), nullable=False
+    )
+    tags: Mapped[list[str]] = mapped_column(
+        JSONB, default=list, server_default=text("'[]'::jsonb"), nullable=False
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
+class ConversationSearchTerm(Base):
+    """每个标题分词一行，支持按用户隔离的倒排检索。"""
+
+    __tablename__ = "conversation_search_terms"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    thread_id: Mapped[str] = mapped_column(
+        ForeignKey("conversations.thread_id", ondelete="CASCADE"), index=True
+    )
+    owner_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    term: Mapped[str] = mapped_column(String(64))
+
+    __table_args__ = (
+        UniqueConstraint("thread_id", "term", name="uq_conversation_search_term"),
+        Index("ix_conversation_search_owner_term", "owner_id", "term"),
+    )
+
+
+class Persona(Base):
+    """Agent 角色定义。系统预设不可修改，用户角色仅本人可见。"""
+
+    __tablename__ = "personas"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    owner_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True
+    )
+    name: Mapped[str] = mapped_column(String(80))
+    role_definition: Mapped[str] = mapped_column(Text)
+    tone: Mapped[str] = mapped_column(Text)
+    style_rules: Mapped[str] = mapped_column(Text, default="")
+    constraints: Mapped[str] = mapped_column(Text, default="")
+    version: Mapped[int] = mapped_column(Integer, default=1, server_default=text("1"))
+    is_system: Mapped[bool] = mapped_column(
+        default=False, server_default=text("false"), index=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
 
 
