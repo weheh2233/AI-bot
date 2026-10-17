@@ -40,6 +40,23 @@ class User(Base):
 
 
 
+class UserModelConfig(Base):
+    """每个用户最多一组模型连接；不配置就使用服务器默认。Key 只存密文。"""
+
+    __tablename__ = "user_model_configs"
+
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    base_url: Mapped[str] = mapped_column(String(512))
+    model_name: Mapped[str] = mapped_column(String(200))
+    encrypted_api_key: Mapped[str] = mapped_column(Text)
+    # 旧请求结束时只更新自己使用的版本，不能污染刚换的新 Key 的使用时间。
+    revision: Mapped[str] = mapped_column(String(32))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
 class Conversation(Base):
     """会话元数据。title 在会话首次出现时固定，不随历史压缩漂移。
 

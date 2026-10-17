@@ -19,6 +19,7 @@ RAG 检索、工具调用、人工审批、流式对话和多用户隔离能力�
 - **工具调用**：包含当前时间、记忆读写、知识库检索、网页搜索和网页正文提取。
 - **多用户隔离**：JWT 登录认证；会话、私有资料和记忆均按用户隔离。
 - **流式输出**：通过 SSE 将 Agent 回复实时推送到网页端。
+- **LangSmith 可观测性**：可选开启 Agent 全链路 tracing，查看模型、工具、延迟、错误与会话线程。
 - **会话管理**：查看、恢复、重命名和删除历史会话。
 - **会话组织**：按更新时间倒序列出会话，支持标题倒排搜索、收藏夹和标签。
 - **角色设定**：系统预设与用户自建角色均可管理；会话保存角色快照，切换从下一条消息生效，不追溯修改旧消息。
@@ -176,12 +177,38 @@ docker compose ps
 | `ZHIPUAI_API_KEY` | 否 | 联网搜索密钥；不配置时网页搜索工具不可用 |
 | `JWT_SECRET_KEY` | 是 | JWT 签名密钥，建议至少 32 个字符 |
 | `MAX_UPLOAD_BYTES` | 否 | 单文件上传上限，默认 `5MB` |
+| `LANGSMITH_TRACING` | 否 | 设为 `true` 后启用 LangSmith tracing，默认关闭 |
+| `LANGSMITH_API_KEY` | 启用 tracing 时是 | LangSmith API Key，不要提交到仓库 |
+| `LANGSMITH_PROJECT` | 否 | Trace 所属项目，默认建议使用 `ai-bot` |
+| `LANGSMITH_ENDPOINT` | 否 | 默认 `https://api.smith.langchain.com` |
+| `LANGSMITH_WORKSPACE_ID` | 否 | Key 可访问多个 workspace 时用于指定目标 workspace |
 | `POSTGRES_DB` | 否 | 默认 `ai_bot` |
 | `POSTGRES_USER` | 否 | 默认 `ai_bot` |
 | `POSTGRES_PASSWORD` | 否 | 默认 `ai_bot_password`，非本地环境请修改 |
 
 Compose 会根据 PostgreSQL 配置自动生成容器内 `DATABASE_URL`，无需在 `.env`
 里写 `localhost` 数据库地址。
+
+## LangSmith 可观测性
+
+项目使用 LangChain/LangGraph 原生 tracing，不需要在每个模型和工具上手工埋点。
+在 LangSmith 创建 API Key 后，把下面配置加入本地 `.env`：
+
+```dotenv
+LANGSMITH_TRACING=true
+LANGSMITH_API_KEY=你的_LangSmith_Key
+LANGSMITH_PROJECT=ai-bot
+LANGSMITH_ENDPOINT=https://api.smith.langchain.com
+```
+
+重启后端并完成一轮聊天，然后到 LangSmith 的 `ai-bot` 项目查看 trace。普通聊天、
+流式聊天、重新生成和人工审批恢复分别使用可识别的 run name；同一应用会话通过内部
+`thread_id` 聚合为 LangSmith Thread。未配置 Key 或保持 `LANGSMITH_TRACING=false`
+时，项目仍可正常运行，不会上传 trace。
+
+Tracing 会包含模型输入/输出、动态提示词、工具参数和工具返回值。即使项目已有 API
+Key 脱敏中间件，也应把 LangSmith 当作可能含用户对话与检索内容的外部观测系统，
+按实际数据合规要求决定是否启用、成员权限与保留周期。
 
 ## 记忆与 RAG
 

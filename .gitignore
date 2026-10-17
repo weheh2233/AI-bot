@@ -7,4 +7,5 @@ __pycache__/
 *.egg-info/
 *.py[cod]
 uploads/
+.superdesign/
 启动命令

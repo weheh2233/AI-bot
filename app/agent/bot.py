@@ -25,7 +25,8 @@ custom_profile = {
 }
 
 _model = init_chat_model(
-    model="openai:deepseek-v4-flash",
+    model=settings.deepseek_model,
+    model_provider="openai",
     base_url=settings.deepseek_base_url,
     api_key=settings.deepseek_api_key,
     profile=custom_profile,
@@ -139,16 +140,18 @@ async def async_system_prompt(request: ModelRequest) -> str:
     return await asyncio.to_thread(_system_prompt_text, request)
 
 
-def get_agent(checkpointer, store, *, async_mode: bool = False):
+def get_agent(checkpointer, store, *, async_mode: bool = False, model=None):
     """构建 Agent。checkpointer 管会话历史，store 管跨会话长期记忆。"""
+    # 个人模型只属于这一次请求，不能替换全局 _model，否则用户之间会串 Key。
+    selected_model = model if model is not None else _model
     return create_agent(
-        model=_model,
+        model=selected_model,
         tools=tools,
         middleware=[
             async_system_prompt if async_mode else system_prompt,
             # 动态 system prompt：注入记忆 + 按会话长度调整
             SummarizationMiddleware(
-                model=_model,
+                model=selected_model,
                 trigger=("messages", 20),  # 超过 20 条消息触发摘要压缩
                 keep=("messages", 10),     # 保留最近 10 条不摘要
             ),

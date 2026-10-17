@@ -9,6 +9,7 @@ from typing import Literal
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.responses import JSONResponse, RedirectResponse, StreamingResponse
+from fastapi.exceptions import RequestValidationError
 from langchain_core.messages import AIMessage, HumanMessage, RemoveMessage, ToolMessage
 from langgraph.types import Command
 from pydantic import BaseModel, Field
@@ -29,7 +30,10 @@ from app.database import get_db
 from app.memory.long_term import store_context
 from app.memory.short_term import async_checkpointer_context, checkpointer_context
 from app.models import Conversation, ConversationSearchTerm, Persona, User
-from app.routers import auth, documents
+from app.routers import auth, documents, settings as settings_router
+from app.model_settings import (
+    agent_for_connection, load_connection, mark_used, model_error_message,
+)
 
 
 @asynccontextmanager
@@ -47,6 +51,15 @@ app = FastAPI(title="AI-bot", lifespan=lifespan)
 app.state.chat_streams = ChatStreamRegistry()
 app.include_router(auth.router)
 app.include_router(documents.router)
+app.include_router(settings_router.router)
+
+
+@app.exception_handler(RequestValidationError)
+async def safe_validation_error(request: Request, exc: RequestValidationError):
+    # 默认 422 会带 input；设置页包含 Key/密码，不能原样回显请求体。
+    errors = [{"loc": error["loc"], "msg": error["msg"], "type": error["type"]}
+              for error in exc.errors()]
+    return JSONResponse({"detail": "请求参数不正确，请检查字段内容", "errors": errors}, 422)
 
 
 class ChatRequest(BaseModel):
@@ -141,11 +154,31 @@ class ConversationPersonaUpdate(BaseModel):
     persona_id: int
 
 
-def _config(user: User, thread_id: str) -> dict:
+def _config(
+    user: User,
+    thread_id: str,
+    *,
+    run_name: str | None = None,
+    tags: list[str] | None = None,
+) -> dict:
     # 会话隔离：checkpointer 只按 thread_id 隔离，不认用户。若直接用客户端传来的
     # thread_id，任何人传相同值即可读到他人会话历史。这里用 user_id 前缀绑定，
     # 让不同用户的同名 thread_id 落到不同的实际存储键。
-    return {"configurable": {"thread_id": f"user-{user.id}:{thread_id}"}}
+    internal_thread_id = f"user-{user.id}:{thread_id}"
+    config = {
+        "configurable": {"thread_id": internal_thread_id},
+        # LangSmith 用这个字段把同一会话的多轮 trace 聚合到一个 Thread 中。
+        # 只发送数据库用户 ID 和内部会话 ID，不发送用户名、JWT 或 API Key。
+        "metadata": {
+            "thread_id": internal_thread_id,
+            "user_id": str(user.id),
+        },
+    }
+    if run_name:
+        config["run_name"] = run_name
+    if tags:
+        config["tags"] = tags
+    return config
 
 
 def _context(user: User) -> AgentContext:
@@ -927,8 +960,8 @@ async def chat(
     db: Session = Depends(get_db),
 ):
     payload = {"messages": [_timed_user_message(req.message)]}
-    config = _config(current, req.thread_id)
-    agent = request.app.state.async_agent
+    config = _config(current, req.thread_id, run_name="ai-bot-chat", tags=["chat"])
+    connection = await asyncio.to_thread(load_connection, current.id)
     context = await asyncio.to_thread(
         _context_for_thread, db, current, req.thread_id, req.persona_id
     )
@@ -936,24 +969,25 @@ async def chat(
         current.id, req.thread_id
     )
     try:
-        start_time = time.perf_counter()
-        result = await agent.ainvoke(payload, config, context=context)
-        state = await agent.aget_state(config)
-        await asyncio.to_thread(
-            _bind_persona_after_chat,
-            db,
-            current,
-            req.thread_id,
-            state,
-            req.persona_id,
-        )
+        async with agent_for_connection(request.app, connection) as agent:
+            start_time = time.perf_counter()
+            result = await agent.ainvoke(payload, config, context=context)
+            await asyncio.to_thread(mark_used, current.id, connection)
+            state = await agent.aget_state(config)
+            await asyncio.to_thread(
+                _bind_persona_after_chat, db, current, req.thread_id, state, req.persona_id,
+            )
 
-        pending = _interrupt_payload(result)
-        if pending:
-            return JSONResponse(pending, status_code=202)
-        elapsed = round(time.perf_counter() - start_time, 2)
-        await _store_assistant_timing(agent, config, elapsed)
-        return {"reply": result["messages"][-1].content, "elapsed": elapsed}
+            pending = _interrupt_payload(result)
+            if pending:
+                return JSONResponse(pending, status_code=202)
+            elapsed = round(time.perf_counter() - start_time, 2)
+            await _store_assistant_timing(agent, config, elapsed)
+            return {"reply": result["messages"][-1].content, "elapsed": elapsed}
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(502, model_error_message(exc)) from None
     finally:
         lock.release()
 
@@ -965,28 +999,37 @@ async def chat_resume(
     current: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    config = _config(current, req.thread_id)
-    agent = request.app.state.async_agent
+    config = _config(
+        current,
+        req.thread_id,
+        run_name="ai-bot-chat-resume",
+        tags=["chat", "human-in-the-loop"],
+    )
+    connection = await asyncio.to_thread(load_connection, current.id)
     context = await asyncio.to_thread(_context_for_thread, db, current, req.thread_id)
     lock = await request.app.state.chat_streams.acquire_conversation(
         current.id, req.thread_id
     )
     try:
-        start_time = time.perf_counter()
-        result = await agent.ainvoke(
-            Command(resume={"decisions": req.decisions}),
-            config,
-            context=context,
-        )
-        state = await agent.aget_state(config)
-        await asyncio.to_thread(_bind_persona_after_chat, db, current, req.thread_id, state)
+        async with agent_for_connection(request.app, connection) as agent:
+            start_time = time.perf_counter()
+            result = await agent.ainvoke(
+                Command(resume={"decisions": req.decisions}), config, context=context,
+            )
+            await asyncio.to_thread(mark_used, current.id, connection)
+            state = await agent.aget_state(config)
+            await asyncio.to_thread(_bind_persona_after_chat, db, current, req.thread_id, state)
 
-        pending = _interrupt_payload(result)
-        if pending:
-            return JSONResponse(pending, status_code=202)
-        elapsed = round(time.perf_counter() - start_time, 2)
-        await _store_assistant_timing(agent, config, elapsed)
-        return {"reply": result["messages"][-1].content, "elapsed": elapsed}
+            pending = _interrupt_payload(result)
+            if pending:
+                return JSONResponse(pending, status_code=202)
+            elapsed = round(time.perf_counter() - start_time, 2)
+            await _store_assistant_timing(agent, config, elapsed)
+            return {"reply": result["messages"][-1].content, "elapsed": elapsed}
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(502, model_error_message(exc)) from None
     finally:
         lock.release()
 
@@ -998,8 +1041,14 @@ def chat_stream(
     current: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    agent = request.app.state.async_agent
-    config = _config(current, req.thread_id)
+    # 在请求开始时读一次快照。设置中途改变，也不会更换正在生成的模型。
+    connection = load_connection(current.id)
+    config = _config(
+        current,
+        req.thread_id,
+        run_name="ai-bot-chat-regenerate" if req.regenerate else "ai-bot-chat-stream",
+        tags=["chat", "stream", *(["regenerate"] if req.regenerate else [])],
+    )
     context = _context_for_thread(db, current, req.thread_id, req.persona_id)
     turn_id = req.turn_id or uuid.uuid4().hex
     run = ChatRun(user_id=current.id, thread_id=req.thread_id, turn_id=turn_id)
@@ -1009,7 +1058,7 @@ def chat_stream(
     except ValueError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
 
-    async def produce():
+    async def produce(agent):
         started_at = time.perf_counter()
         try:
             message = req.message
@@ -1027,6 +1076,7 @@ def chat_stream(
                     continue
                 await run.queue.put({"delta": chunk.content})#只往队列里放大模型异步流返回的被过滤后的有效信息
 
+            await asyncio.to_thread(mark_used, current.id, connection)
             state = await agent.aget_state(config)  #读取图状态
             await asyncio.to_thread(
                 #同步函数放到工作线程里运行，这样它做数据库 I/O 时，不会卡住当前的异步事件循环。
@@ -1063,7 +1113,16 @@ def chat_stream(
             await run.queue.put({"type": "error", "detail": exc.detail})
             await run.queue.put(None)
         except Exception as exc:
-            await run.queue.put({"type": "error", "detail": str(exc)})
+            await run.queue.put({"type": "error", "detail": model_error_message(exc)})
+            await run.queue.put(None)
+
+    async def run_producer():
+        # 这一层只负责个人模型客户端的生命周期；取消时也会关闭 HTTP 连接。
+        try:
+            async with agent_for_connection(request.app, connection) as agent:
+                await produce(agent)
+        except Exception as exc:
+            await run.queue.put({"type": "error", "detail": model_error_message(exc)})
             await run.queue.put(None)
 #把数据包装成 SSE（服务器发送事件）格式
     def encode_event(payload, sequence: int) -> str:
@@ -1078,8 +1137,9 @@ def chat_stream(
         try:
             lock = await registry.activate(run)
             if not run.cancelled:
-                run.producer = asyncio.create_task(produce())
+                run.producer = asyncio.create_task(run_producer())
             sequence = 0
+            replay_remaining = 0 #暂停之后，本次恢复时，已经积压了多少个片段”。
             sequence += 1
             run.last_sent_seq = sequence
             yield encode_event({"type": "started", "turn_id": turn_id}, sequence)#第一条事件是 started，带上 turn_id，告诉前端这轮对话开始了。
@@ -1096,6 +1156,7 @@ def chat_stream(
                     run.last_sent_seq = sequence
                     yield encode_event(CANCELLED_EVENT, sequence)
                     break
+                was_paused = not run.resumed.is_set()
 #run.resumed 是一个“允许发送”的开关。暂停时它被 clear()，循环就在 await run.resumed.wait() 这里
                 # 暂停时保留当前片段和队列内容；继续后从这个片段接着发，不重跑模型。
                 while not run.resumed.is_set() and not run.cancelled:#还没收到“继续”信号，并且任务还没取消时，就继续等待。
@@ -1108,6 +1169,8 @@ def chat_stream(
                     run.last_sent_seq = sequence
                     yield encode_event(CANCELLED_EVENT, sequence)
                     break
+                if was_paused:
+                    replay_remaining=run.queue.qsize() + 1
                 if item is None:
                     sequence += 1
                     run.last_sent_seq = sequence
@@ -1121,12 +1184,10 @@ def chat_stream(
                 # 暂停期间生产端仍在往队列里灌片段；恢复后若一口气 yield 完，浏览器
                 # 会在同一帧把积压内容全部渲染出来。这里只在队列还有积压时留出间隔，
                 # 让片段按节奏吐出，队列排空后自动恢复全速，正常流式不受影响。
-                if (
-                    isinstance(item, dict)
-                    and "delta" in item
-                    and not run.queue.empty()
-                ):
-                    await asyncio.sleep(STREAM_REPLAY_INTERVAL)
+                if isinstance(item, dict) and "delta" in item and replay_remaining > 0:
+                    replay_remaining -= 1
+                    if replay_remaining > 0:
+                        await asyncio.sleep(STREAM_REPLAY_INTERVAL)
         finally:
             # 浏览器断开连接也会走这里：清理模型任务、移除 turn_id 并释放会话锁。
             if run.producer is not None and not run.producer.done():
