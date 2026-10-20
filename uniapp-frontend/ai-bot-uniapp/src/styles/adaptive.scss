@@ -1,0 +1,1148 @@
+/* ==========================================================================
+ * 移动端适配层（uni-app 尺寸体系）
+ *
+ * app.scss 是从原站桌面样式自动移植来的，用的是 px + 桌面三栏布局，
+ * 那套在 1024px 以上已经逐像素验证过，保留不动。
+ *
+ * 这个文件负责 1024px 以下的**移动优先**布局：
+ *   - 全部尺寸改用 rpx（750 设计基准，375 逻辑宽下 2rpx = 1px），
+ *     随设备宽度等比缩放，符合 uni-app / 小程序的尺寸规范；
+ *   - 左侧栏在窄屏变为**底部 tab 栏**，账号信息与退出登录移到顶栏；
+ *   - 输入区固定在 tab 栏之上，并处理 iOS 刘海屏安全区；
+ *   - 卡片、表单、弹窗统一改为单列 + 触摸目标 ≥ 88rpx。
+ *
+ * 1px 级别的描边仍用 px（hairline），否则在高倍屏上会变粗。
+ * ========================================================================== */
+
+@media (max-width: 1023px) {
+  /* ---------------- 基础 ---------------- */
+
+  page {
+    font-size: 28rpx;
+    line-height: 1.65;
+    /* 移动端不允许横向滚动：任何一处溢出都会让底部 tab 栏与弹窗被裁掉 */
+    overflow-x: hidden;
+  }
+
+  .app-shell {
+    height: 100vh;
+    height: 100dvh;
+    display: block;
+    overflow: hidden;
+    /* 给底部 tab 栏留位置 */
+    padding-bottom: calc(100rpx + constant(safe-area-inset-bottom));
+    padding-bottom: calc(100rpx + env(safe-area-inset-bottom));
+  }
+
+  .main {
+    height: 100%;
+    min-height: 0;
+    display: grid;
+    /* 顶栏 + 内容 */
+    grid-template-rows: 96rpx minmax(0, 1fr);
+    overflow: hidden;
+  }
+
+  /* ---------------- 左侧栏 → 底部 tab 栏 ---------------- */
+
+  .rail {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 20;
+    height: calc(100rpx + constant(safe-area-inset-bottom));
+    height: calc(100rpx + env(safe-area-inset-bottom));
+    display: block;
+    padding: 0 0 constant(safe-area-inset-bottom);
+    padding: 0 0 env(safe-area-inset-bottom);
+    background: rgba(255, 255, 255, 0.96);
+    border: 0;
+    border-top: 1px solid var(--line);
+    box-shadow: 0 -4rpx 24rpx rgba(33, 56, 47, 0.06);
+    overflow: visible;
+  }
+
+  /* 品牌与账号区在移动端不占位：品牌信息已由顶栏承载，
+     账号与退出登录在顶栏右侧 */
+  .rail .brand,
+  .rail .rail-bottom {
+    display: none;
+  }
+
+  .rail .rail-nav,
+  .rail .nav-caption {
+    display: block;
+    margin: 0;
+    padding: 0;
+  }
+
+  .rail .nav-caption {
+    display: none;
+  }
+
+  .rail .nav-list {
+    height: 100rpx;
+    /* 用 5 等分网格，保证 5 个 tab 一定塞得进屏宽 */
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    align-items: stretch;
+    gap: 0;
+    width: 100%;
+    overflow: hidden;
+  }
+
+  .rail .nav-item {
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6rpx;
+    padding: 0 2rpx;
+    font-size: 20rpx;
+    line-height: 1.2;
+    color: #7b8781;
+    border-radius: 0;
+    background: transparent;
+    text-align: center;
+    overflow: hidden;
+  }
+
+  .rail .nav-item text {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .rail .nav-item.active {
+    color: var(--green-dark);
+    background: transparent;
+    font-weight: 650;
+  }
+
+  .rail .nav-icon {
+    width: auto;
+    font-size: 34rpx;
+    line-height: 1;
+  }
+
+  /* 选中态的顶部小横条 */
+  .rail .nav-item.active::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    width: 40rpx;
+    height: 4rpx;
+    border-radius: 2rpx;
+    background: var(--green);
+  }
+
+  .rail .nav-item {
+    position: relative;
+  }
+
+  /* ---------------- 顶栏 ---------------- */
+
+  .topbar {
+    height: 96rpx;
+    padding: 0 20rpx;
+    gap: 12rpx;
+    background: rgba(255, 255, 255, 0.94);
+    backdrop-filter: blur(12rpx);
+  }
+
+  /* #ifdef MP-WEIXIN */
+  /* 微信右上角有固定的胶囊按钮，自定义导航栏右侧必须留出避让空间，
+     否则「新建会话 / 退出」会被胶囊压住 */
+  .topbar {
+    padding-right: 180rpx;
+  }
+  /* #endif */
+
+  /* 移动端顶栏信息精简：只保留标题 + 新建 + 账号 + 退出 */
+  .topbar-heading {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .topbar-export,
+  .topbar-meta {
+    display: none;
+  }
+
+  /* 两个导出按钮在移动端合并为一个「⋯」菜单 */
+  .topbar-more {
+    display: grid;
+  }
+
+  .topbar-new {
+    min-width: 64rpx;
+    min-height: 64rpx;
+    padding: 0;
+    border-radius: 12rpx;
+  }
+
+  .topbar-new-text {
+    display: none;
+  }
+
+  .topbar-new-icon {
+    display: inline;
+    font-size: 38rpx;
+    line-height: 1;
+  }
+
+  .topbar-title {
+    font-size: 32rpx;
+    line-height: 1.3;
+  }
+
+  .topbar-meta {
+    margin-top: 2rpx;
+    font-size: 20rpx;
+  }
+
+  .topbar-actions {
+    gap: 12rpx;
+  }
+
+  .topbar-actions .quiet-button {
+    min-height: 64rpx;
+    padding: 0 20rpx;
+    font-size: 24rpx;
+  }
+
+  .icon-button {
+    width: 64rpx;
+    height: 64rpx;
+    border-radius: 12rpx;
+    font-size: 28rpx;
+  }
+
+  .thread-title-input {
+    width: 60vw;
+    height: 64rpx;
+    font-size: 30rpx;
+  }
+
+  /* ---------------- 对话区 ---------------- */
+
+  .chat-view {
+    height: 100%;
+    min-height: 0;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* 右侧历史面板在移动端由「历史会话」tab 承载 */
+  .chat-history-panel {
+    display: none;
+  }
+
+  .chat-column {
+    height: 100%;
+    min-height: 0;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+  }
+
+  /* 本会话角色栏 */
+  .chat-persona-bar {
+    flex-wrap: nowrap;
+    gap: 10rpx;
+    padding: 12rpx 20rpx;
+    font-size: 22rpx;
+    background: rgba(247, 249, 246, 0.9);
+    border-bottom: 1px solid var(--line);
+    /* 角色名可能很长，必须允许收缩，否则整页会被撑宽 */
+    overflow: hidden;
+  }
+
+  .chat-persona-bar .persona-picker {
+    flex: 0 1 auto;
+    min-width: 0;
+  }
+
+  .chat-persona-bar .persona-picker-select {
+    height: 52rpx;
+    max-width: 40vw;
+    padding: 0 12rpx;
+    border-radius: 8rpx;
+    font-size: 24rpx;
+  }
+
+  .chat-persona-current {
+    flex: 1;
+    min-width: 0;
+    font-size: 22rpx;
+  }
+
+  .chat-persona-latest {
+    min-height: 52rpx;
+    padding: 0 16rpx;
+    font-size: 22rpx;
+    border-radius: 8rpx;
+  }
+
+  .messages {
+    width: 100%;
+    max-width: none;
+    padding: 0;
+  }
+
+  .messages-inner {
+    gap: 32rpx;
+    padding: 28rpx 20rpx 32rpx;
+  }
+
+  /* 气泡：移动端按屏宽比例，别贴边 */
+  .bubble-wrap {
+    max-width: 78%;
+  }
+
+  .message .avatar {
+    width: 72rpx;
+    height: 72rpx;
+    font-size: 28rpx;
+  }
+
+  .message-label {
+    margin: 0 4rpx 8rpx;
+    font-size: 20rpx;
+  }
+
+  .bubble {
+    padding: 20rpx 24rpx;
+    border-radius: 6rpx 20rpx 20rpx;
+    font-size: 28rpx;
+    line-height: 1.7;
+  }
+
+  .message.user .bubble {
+    border-radius: 20rpx 6rpx 20rpx 20rpx;
+  }
+
+  .mock-badge {
+    margin-top: 8rpx;
+    padding: 4rpx 14rpx;
+    font-size: 20rpx;
+  }
+
+  .message-time {
+    margin: 8rpx 4rpx 0;
+    font-size: 20rpx;
+  }
+
+  .elapsed-time {
+    margin: 6rpx 0 12rpx;
+    font-size: 20rpx;
+  }
+
+  .message-actions {
+    gap: 8rpx;
+    margin-top: 10rpx;
+  }
+
+  .message-action {
+    min-height: 52rpx;
+    padding: 0 16rpx;
+    border-radius: 8rpx;
+    font-size: 22rpx;
+  }
+
+  /* 欢迎区 */
+  .welcome {
+    padding: 8rpx 0 32rpx;
+  }
+
+  .welcome-eyebrow {
+    padding: 8rpx 14rpx;
+    border-radius: 8rpx;
+    font-size: 22rpx;
+  }
+
+  .welcome-title {
+    margin: 24rpx 0 16rpx;
+    font-size: 48rpx;
+    line-height: 1.28;
+  }
+
+  .welcome-text {
+    font-size: 26rpx;
+    line-height: 1.75;
+  }
+
+  .suggestions {
+    grid-template-columns: 1fr;
+    gap: 16rpx;
+    margin-top: 32rpx;
+  }
+
+  .suggestion {
+    min-height: 96rpx;
+    padding: 22rpx 24rpx;
+    border-radius: 14rpx;
+    font-size: 26rpx;
+  }
+
+  /* ---------------- 输入区 ---------------- */
+
+  .composer-wrap {
+    padding: 0 20rpx 20rpx;
+    background: transparent;
+  }
+
+  .composer {
+    width: 100%;
+    max-width: none;
+    padding: 16rpx;
+    border-radius: 18rpx;
+  }
+
+  .composer-input {
+    height: 120rpx;
+    min-height: 120rpx;
+    max-height: 320rpx;
+    font-size: 28rpx;
+  }
+
+  .composer-footer {
+    padding: 8rpx 4rpx 0 8rpx;
+    gap: 12rpx;
+  }
+
+  .composer-hint {
+    font-size: 20rpx;
+  }
+
+  .stream-controls {
+    gap: 10rpx;
+  }
+
+  .stream-control {
+    min-height: 60rpx;
+    padding: 0 20rpx;
+    border-radius: 10rpx;
+    font-size: 24rpx;
+  }
+
+  .send-button {
+    width: 72rpx;
+    height: 68rpx;
+    border-radius: 12rpx;
+  }
+
+  .send-button-icon {
+    width: 34rpx;
+    height: 34rpx;
+  }
+
+  /* ---------------- 通用按钮 / 表单触摸目标 ---------------- */
+
+  .quiet-button,
+  .primary-button {
+    min-height: 72rpx;
+    padding: 0 24rpx;
+    border-radius: 12rpx;
+    font-size: 26rpx;
+  }
+
+  .auth-tab {
+    min-height: 72rpx;
+    border-radius: 10rpx;
+    font-size: 26rpx;
+  }
+
+  .delete-doc,
+  .session-del {
+    min-height: 56rpx;
+    border-radius: 10rpx;
+    font-size: 22rpx;
+  }
+
+  /* ---------------- 资料 / 历史 / 角色 / 设置：统一单列 ---------------- */
+
+  .documents-inner,
+  .history-inner,
+  .persona-inner {
+    width: 100%;
+    max-width: none;
+    padding: 28rpx 20rpx 40rpx;
+  }
+
+  .documents-hero,
+  .history-header,
+  .persona-hero {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 20rpx;
+    padding-bottom: 24rpx;
+  }
+
+  .documents-title,
+  .history-heading,
+  .persona-title {
+    margin: 12rpx 0 10rpx;
+    font-size: 44rpx;
+    line-height: 1.25;
+  }
+
+  .documents-text,
+  .history-text,
+  .persona-text {
+    font-size: 26rpx;
+    line-height: 1.7;
+  }
+
+  .documents-eyebrow {
+    font-size: 20rpx;
+  }
+
+  .documents-stats {
+    width: 100%;
+    gap: 16rpx;
+  }
+
+  .documents-stat {
+    flex: 1;
+    min-width: 0;
+    padding: 22rpx;
+    border-radius: 14rpx;
+  }
+
+  .documents-stat-value {
+    font-size: 40rpx;
+  }
+
+  .documents-stat-label {
+    font-size: 20rpx;
+  }
+
+  .documents-layout,
+  .persona-layout {
+    grid-template-columns: 1fr;
+    gap: 24rpx;
+    margin-top: 28rpx;
+  }
+
+  .documents-upload {
+    position: static;
+    padding: 24rpx;
+  }
+
+  .documents-library,
+  .persona-editor,
+  .persona-library {
+    padding: 24rpx;
+    border-radius: 16rpx;
+  }
+
+  .documents-library .doc-list,
+  .doc-list {
+    grid-template-columns: 1fr;
+    gap: 16rpx;
+  }
+
+  .doc-item,
+  .persona-item {
+    padding: 22rpx;
+    border-radius: 14rpx;
+  }
+
+  .doc-title,
+  .persona-item-name {
+    font-size: 28rpx;
+  }
+
+  .file-detail,
+  .doc-meta,
+  .persona-item-desc {
+    font-size: 22rpx;
+  }
+
+  .empty-docs,
+  .history-empty,
+  .persona-empty {
+    padding: 48rpx 24rpx;
+    border-radius: 14rpx;
+    font-size: 24rpx;
+  }
+
+  /* 历史工具栏：换行排布 */
+  .history-tools {
+    width: 100%;
+    justify-content: flex-start;
+    gap: 12rpx;
+  }
+
+  .history-search {
+    flex: 1;
+    min-width: 220rpx;
+    height: 72rpx;
+    padding: 0 18rpx;
+    border-radius: 12rpx;
+  }
+
+  .history-search-input {
+    font-size: 26rpx;
+  }
+
+  .history-tools-select {
+    min-height: 72rpx;
+    padding: 0 18rpx;
+    border-radius: 12rpx;
+    font-size: 24rpx;
+  }
+
+  .history-filter-button {
+    min-height: 72rpx;
+    padding: 0 24rpx;
+    border-radius: 12rpx;
+    font-size: 24rpx;
+  }
+
+  .history-item {
+    grid-template-columns: 1fr;
+    gap: 16rpx;
+    padding: 24rpx;
+    border-radius: 16rpx;
+  }
+
+  .history-title {
+    font-size: 28rpx;
+  }
+
+  .history-preview {
+    margin-top: 10rpx;
+    font-size: 24rpx;
+  }
+
+  .history-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    justify-items: start;
+    gap: 12rpx;
+    font-size: 22rpx;
+  }
+
+  .history-tag {
+    font-size: 20rpx;
+  }
+
+  /* 角色表单 */
+  .persona-panel-heading {
+    padding-bottom: 20rpx;
+  }
+
+  .persona-panel-title {
+    font-size: 30rpx;
+  }
+
+  .persona-panel-text {
+    font-size: 22rpx;
+  }
+
+  .persona-form {
+    gap: 20rpx;
+    margin-top: 22rpx;
+  }
+
+  .persona-field {
+    gap: 10rpx;
+    font-size: 24rpx;
+  }
+
+  .persona-field-input,
+  .persona-form .persona-name-input {
+    height: 80rpx;
+    padding: 0 20rpx;
+    border-radius: 12rpx;
+    font-size: 26rpx;
+  }
+
+  .persona-field-textarea {
+    height: 180rpx;
+    min-height: 180rpx;
+    padding: 18rpx 20rpx;
+    border-radius: 12rpx;
+    font-size: 26rpx;
+  }
+
+  .persona-form-actions {
+    gap: 16rpx;
+  }
+
+  .persona-preview {
+    margin-top: 24rpx;
+    padding: 20rpx 22rpx;
+    border-radius: 0 12rpx 12rpx 0;
+  }
+
+  .persona-preview-label {
+    font-size: 18rpx;
+  }
+
+  .persona-preview-text {
+    margin-top: 10rpx;
+    font-size: 22rpx;
+  }
+
+  /* 设置页 */
+  .settings-workspace {
+    background: #fff;
+  }
+
+  .settings-inner {
+    width: 100%;
+    max-width: none;
+    padding: 40rpx 20rpx 48rpx;
+  }
+
+  .settings-hero h1,
+  .settings-title {
+    margin: 12rpx 0 14rpx;
+    font-size: 46rpx;
+  }
+
+  .settings-text {
+    font-size: 26rpx;
+  }
+
+  .settings-eyebrow {
+    font-size: 20rpx;
+  }
+
+  .settings-overview-heading {
+    gap: 16rpx;
+  }
+
+  .settings-back {
+    min-height: 64rpx;
+    padding: 0 18rpx;
+    border-radius: 10rpx;
+    font-size: 24rpx;
+  }
+
+  .settings-list {
+    gap: 20rpx;
+    margin-top: 36rpx;
+  }
+
+  .settings-section {
+    min-height: 0;
+    gap: 22rpx;
+    padding: 26rpx 24rpx;
+    border-radius: 18rpx;
+  }
+
+  .settings-section-icon {
+    width: 92rpx;
+    height: 92rpx;
+    border-radius: 18rpx;
+  }
+
+  .settings-icon {
+    width: 46rpx;
+    height: 46rpx;
+  }
+
+  .settings-section-title {
+    font-size: 30rpx;
+  }
+
+  .settings-section-desc {
+    margin-top: 8rpx;
+    font-size: 24rpx;
+  }
+
+  .settings-arrow {
+    font-size: 36rpx;
+  }
+
+  .settings-detail {
+    width: 100%;
+    max-width: none;
+    padding: 28rpx 20rpx 48rpx;
+  }
+
+  .settings-detail-head {
+    padding: 24rpx 0 22rpx;
+  }
+
+  .settings-detail-title {
+    font-size: 40rpx;
+  }
+
+  .settings-detail-text,
+  .settings-card-desc {
+    font-size: 24rpx;
+  }
+
+  .settings-card {
+    margin-top: 24rpx;
+    padding: 24rpx;
+    border-radius: 16rpx;
+  }
+
+  .settings-card-title {
+    font-size: 30rpx;
+  }
+
+  .settings-fields {
+    gap: 20rpx;
+    margin-top: 24rpx;
+  }
+
+  .settings-field {
+    gap: 10rpx;
+    font-size: 24rpx;
+  }
+
+  .settings-field-input {
+    height: 80rpx;
+    padding: 0 20rpx;
+    border-radius: 12rpx;
+    font-size: 26rpx;
+  }
+
+  .settings-field-help {
+    font-size: 20rpx;
+  }
+
+  .settings-actions {
+    gap: 16rpx;
+    margin-top: 26rpx;
+    padding-top: 24rpx;
+  }
+
+  .settings-action-button {
+    min-height: 80rpx;
+    padding: 0 24rpx;
+    border-radius: 12rpx;
+    font-size: 26rpx;
+  }
+
+  .settings-meta {
+    gap: 20rpx;
+    margin-top: 20rpx;
+    font-size: 20rpx;
+  }
+
+  .settings-notice {
+    margin-top: 20rpx;
+    padding: 16rpx 18rpx;
+    font-size: 20rpx;
+  }
+
+  .settings-choice-group {
+    gap: 14rpx;
+    margin-top: 24rpx;
+  }
+
+  .settings-choice-label {
+    font-size: 24rpx;
+  }
+
+  .settings-choice-row {
+    gap: 14rpx;
+  }
+
+  .settings-choice {
+    min-height: 72rpx;
+    padding: 0 22rpx;
+    border-radius: 12rpx;
+    font-size: 24rpx;
+  }
+
+  .settings-choice-dot {
+    width: 28rpx;
+    height: 28rpx;
+  }
+
+  /* ---------------- 登录 / 审批 / 代码弹窗 ---------------- */
+
+  .auth-screen {
+    padding: 32rpx;
+  }
+
+  .auth-card {
+    width: 100%;
+    max-width: none;
+    padding: 40rpx 32rpx;
+    border-radius: 20rpx;
+  }
+
+  .auth-title {
+    font-size: 44rpx;
+  }
+
+  .auth-subtitle {
+    margin: 12rpx 0 28rpx;
+    font-size: 24rpx;
+  }
+
+  .auth-tabs {
+    padding: 8rpx;
+    border-radius: 14rpx;
+  }
+
+  .auth-form {
+    gap: 20rpx;
+    margin-top: 26rpx;
+  }
+
+  .auth-field {
+    gap: 12rpx;
+    font-size: 24rpx;
+  }
+
+  .auth-input {
+    height: 88rpx;
+    padding: 0 22rpx;
+    border-radius: 12rpx;
+  }
+
+  .approval-modal {
+    padding: 24rpx;
+  }
+
+  .approval-dialog {
+    width: 100%;
+    max-width: none;
+    max-height: calc(100vh - 80rpx);
+    border-radius: 20rpx;
+  }
+
+  .approval-header {
+    gap: 20rpx;
+    padding: 32rpx 28rpx 24rpx;
+  }
+
+  .approval-shield {
+    width: 80rpx;
+    height: 80rpx;
+    border-radius: 18rpx;
+    font-size: 36rpx;
+  }
+
+  .approval-heading {
+    font-size: 36rpx;
+  }
+
+  .approval-subheading,
+  .approval-description {
+    font-size: 24rpx;
+  }
+
+  .approval-request-list {
+    gap: 20rpx;
+    padding: 24rpx 28rpx;
+  }
+
+  .approval-request {
+    padding: 24rpx;
+    border-radius: 14rpx;
+  }
+
+  .approval-request-title {
+    font-size: 28rpx;
+  }
+
+  .approval-field {
+    grid-template-columns: 160rpx minmax(0, 1fr);
+    gap: 16rpx;
+    padding-top: 12rpx;
+  }
+
+  .approval-field-key,
+  .approval-field-value {
+    font-size: 22rpx;
+  }
+
+  .decision-option {
+    min-height: 72rpx;
+    padding: 0 22rpx;
+    border-radius: 12rpx;
+    font-size: 24rpx;
+  }
+
+  .decision-dot {
+    width: 28rpx;
+    height: 28rpx;
+  }
+
+  .approval-other {
+    height: 180rpx;
+    min-height: 180rpx;
+    font-size: 26rpx;
+  }
+
+  .approval-footer {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 20rpx;
+    padding: 24rpx 28rpx 32rpx;
+  }
+
+  .approval-note {
+    max-width: none;
+    font-size: 20rpx;
+  }
+
+  .approval-buttons {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .modal-approve {
+    min-height: 88rpx;
+    border-radius: 14rpx;
+    font-size: 28rpx;
+  }
+
+  .code-dialog {
+    width: calc(100vw - 32rpx);
+    height: 82vh;
+    max-height: 82vh;
+    border-radius: 16rpx;
+  }
+
+  .code-dialog-head {
+    height: 88rpx;
+    padding: 0 20rpx 0 24rpx;
+    font-size: 26rpx;
+  }
+
+  .code-dialog-pre {
+    height: calc(100% - 88rpx);
+    padding: 24rpx;
+    font-size: 24rpx;
+    line-height: 1.6;
+  }
+
+  .code-tool {
+    min-height: 56rpx;
+    padding: 0 16rpx;
+    border-radius: 10rpx;
+    font-size: 22rpx;
+  }
+
+  .code-toolbar {
+    top: 80rpx;
+    right: 12rpx;
+    gap: 8rpx;
+  }
+
+  .code-block-shell pre {
+    padding-top: 68rpx;
+  }
+
+  /* 提示条落在 tab 栏上方 */
+  .notice {
+    right: 20rpx;
+    bottom: calc(120rpx + constant(safe-area-inset-bottom));
+    bottom: calc(120rpx + env(safe-area-inset-bottom));
+    left: 20rpx;
+    max-width: none;
+    padding: 20rpx 24rpx;
+    border-radius: 14rpx;
+    font-size: 26rpx;
+  }
+
+  /* Settings 全屏模式：移动端本来就隐藏 rail，这里让内容占满 */
+  .app-shell.settings-mode {
+    padding-bottom: 0;
+  }
+
+  .app-shell.settings-mode .main {
+    grid-template-rows: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 1023px) {
+  /* 移动端账号入口：桌面端账号信息在左侧栏底部，移动端左侧栏变成底部 tab 栏后
+     没地方放，因此顶栏给一个退出登录图标（仅移动端显示，见文件末尾） */
+  .topbar-logout {
+    display: flex;
+  }
+}
+
+/* --------------------------------------------------------------------------
+ * 宽屏 H5：内容收窄居中，避免 1440px 下聊天行被拉得太长
+ * ----------------------------------------------------------------------- */
+@media (min-width: 1024px) {
+  .messages-inner,
+  .composer {
+    max-width: 1080px;
+  }
+
+  /* 桌面端账号信息在左侧栏，顶栏的退出图标隐藏 */
+  .topbar-logout {
+    display: none;
+  }
+}
+
+/* 桌面端账号与退出在左侧栏；移动端左侧栏的账号区被隐藏，改由顶栏承载 */
+.topbar-user {
+  display: none;
+}
+
+@media (max-width: 1023px) {
+  /* 移动端用头像字符表示登录状态，比完整用户名省空间 */
+  .topbar-user {
+    width: 56rpx;
+    height: 56rpx;
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    color: var(--green-dark);
+    border-radius: 50%;
+    background: #d9e9df;
+    font-size: 24rpx;
+    font-weight: 700;
+  }
+
+  .topbar-logout {
+    display: flex;
+  }
+
+  /* 聊天图片：输入区缩略图与消息图片在移动端用 rpx */
+  .attach-button {
+    width: 64rpx;
+    height: 56rpx;
+    border-radius: 10rpx;
+    font-size: 28rpx;
+  }
+
+  .composer-images {
+    gap: 12rpx;
+    padding: 8rpx 4rpx 4rpx;
+  }
+
+  .composer-image-item {
+    width: 120rpx;
+    height: 120rpx;
+  }
+
+  .composer-image {
+    border-radius: 12rpx;
+  }
+
+  .composer-image-remove {
+    top: -8rpx;
+    right: -8rpx;
+    width: 40rpx;
+    height: 40rpx;
+    font-size: 24rpx;
+  }
+
+  .message-image {
+    width: 180rpx;
+    height: 180rpx;
+    border-radius: 12rpx;
+  }
+}

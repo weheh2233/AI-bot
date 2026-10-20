@@ -1,0 +1,20 @@
+{
+  "pages": [
+    {
+      "path": "pages/index/index",
+      "style": {
+        "navigationBarTitleText": "AI Bot",
+        "navigationStyle": "custom"
+      }
+    }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "AI Bot",
+    "navigationBarBackgroundColor": "#FFFFFF",
+    "backgroundColor": "#F5F6F8",
+    "backgroundColorTop": "#F5F6F8",
+    "backgroundColorBottom": "#F5F6F8"
+  },
+  "uniIdRouter": {}
+}

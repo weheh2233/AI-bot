@@ -1,0 +1,44 @@
+# uni-app + pnpm：必须用 hoisted 链接器。
+# pnpm 默认的隔离式 node_modules 不会把 @dcloudio/uni-shared、module-alias、
+# xregexp 等依赖提升到顶层，导致 uni CLI 启动即 MODULE_NOT_FOUND。
+# 这是 DCloud 官方文档给出的 pnpm 配置。
+nodeLinker: hoisted
+
+# 链接器/配置变化时 pnpm 会要求交互确认是否重建 node_modules；
+# 在 CI 或无 TTY 的环境里这会直接失败，因此显式关掉确认。
+confirmModulesPurge: false
+
+# pnpm run 前的依赖自检会隐式再跑一次 install，进而重跑下面这些构建脚本。
+# 在受限环境里那一步会因无法创建管道而失败，且已安装的依赖并不会因此变化，
+# 因此关掉自检：pnpm run dev:h5 / build:h5 直接执行脚本。
+verifyDepsBeforeRun: false
+
+# pnpm 10+ 默认拦截依赖的构建脚本，这里显式放行 uni-app 工具链需要的几个。
+allowBuilds:
+  '@parcel/watcher': true
+  core-js: true
+  core-js-pure: true
+  esbuild: true
+  vue-demi: true
+
+# 强制 Vue 全家桶用同一版本。
+# 原因：vue-tsc 1.0.24 依赖的旧版 @volar 会把顶层的 @vue/shared 顶到 3.4.21，
+# 而 vue / @vue/runtime-core 是 3.5.43。App（app-plus）平台的构建会把 @vue/*
+# dedupe 到顶层那一份，于是 runtime-core 去取 3.4.21 里不存在的
+# normalizeCssVarValue，直接构建失败。锁成同一版本后三端都能构建。
+overrides:
+  '@vue/shared': 3.5.43
+  '@vue/reactivity': 3.5.43
+  '@vue/runtime-core': 3.5.43
+  '@vue/runtime-dom': 3.5.43
+  '@vue/compiler-core': 3.5.43
+  '@vue/compiler-dom': 3.5.43
+  '@vue/compiler-sfc': 3.5.43
+  '@vue/compiler-ssr': 3.5.43
+  '@vue/server-renderer': 3.5.43
+  vue: 3.5.43
+
+
+
+
+

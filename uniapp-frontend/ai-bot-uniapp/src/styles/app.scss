@@ -1,0 +1,611 @@
+/* 由 tools/build_styles.py 从原站 web/index.html 的 <style> 自动移植。
+ * 请勿手改：改 references/original-split/styles.css 后重新生成。
+ * 已完成的跨端适配：
+ *   - :root/body/html -> :root, page
+ *   - 标签选择器 -> 类选择器（uni-app 不渲染原生 h1/p/strong/dt）
+ *   - min()/max() -> width + max-width 等价写法
+ *   - :has(input:checked) -> .is-active
+ *   - 原生 file input 规则 -> 已移除（改用 .file-picker）
+ */
+
+:root,
+page{color-scheme:light;--canvas:#f3f5f2;--paper:#fff;--ink:#1e2826;--muted:#75817d;--line:#e3e9e5;--green:#28765f;--green-dark:#1d5a49;--green-soft:#e8f2ed;--blue:#477a94;--blue-soft:#eaf1f5;--amber:#a36a24;--amber-soft:#faf0df;--red:#a9443b;--red-soft:#f8ecea;--shadow:0 12px 36px rgba(33, 56, 47, 0.07);font-family:Inter,"Segoe UI","Microsoft YaHei",sans-serif;font-synthesis:none;text-rendering:optimizeLegibility}
+    /* #ifdef H5 */
+*{box-sizing:border-box}
+/* #endif */
+/* 小程序 WXSS 不支持通配符选择器 *，改用常用组件标签列表 */
+page,view,text,image,scroll-view,swiper-item,button,input,textarea,rich-text{box-sizing:border-box}page{margin:0;min-width:320px;min-height:100vh;color:var(--ink);background:var(--canvas)}.app-shell{min-height:100vh;display:grid;grid-template-columns:232px minmax(420px,1fr) 302px}.rail{display:flex;flex-direction:column;gap:24px;padding:22px 16px;background:#edf1ed;border-right:1px solid #dfe6e1}.brand{display:flex;align-items:center;gap:11px;padding:4px 7px}.brand-mark{width:34px;height:34px;display:grid;place-items:center;color:white;background:var(--green);border-radius:10px;font:18px Georgia,serif}.brand-name{font:700 20px Georgia,"Songti SC",serif}.brand-sub{margin-top:2px;color:var(--muted);font-size:11px}.nav-caption,
+.section-label{margin:0 8px 8px;color:var(--muted);font-size:11px;font-weight:700;text-transform:uppercase}.nav-list{display:grid;gap:5px}.nav-item{display:flex;align-items:center;gap:10px;min-height:39px;padding:0 10px;color:#596661;border:0;border-radius:7px;background:transparent;text-align:left;cursor:pointer}.nav-item.active{color:var(--green-dark);background:#dce9e1;font-weight:650}.nav-icon{width:18px;text-align:center;font-size:15px}.rail-bottom{margin-top:auto}.account-box{padding:12px;border:1px solid #dce4de;border-radius:8px;background:rgba(255, 255, 255, 0.56)}.account-row{display:flex;align-items:center;gap:9px;min-width:0}.avatar{width:30px;height:30px;display:grid;flex:0 0 auto;place-items:center;border-radius:50%;color:var(--green-dark);background:#d9e9df;font-weight:700}.account-name{overflow:hidden;font-size:13px;font-weight:650;text-overflow:ellipsis;white-space:nowrap}.account-status{margin-top:3px;color:var(--muted);font-size:11px}.quiet-button{min-height:34px;padding:0 9px;color:#66716d;border:1px solid var(--line);border-radius:6px;background:white;cursor:pointer}.logout-button{width:100%;margin-top:11px}.main{min-width:0;display:flex;flex-direction:column;min-height:100vh;background:#fbfcfa}.topbar{height:68px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 24px;border-bottom:1px solid var(--line);background:rgba(255, 255, 255, 0.72)}.topbar-title{font:700 18px Georgia,"Songti SC",serif}.topbar-meta{margin-top:4px;color:var(--muted);font-size:11px}.topbar-actions{display:flex;gap:8px}.primary-button{min-height:36px;padding:0 13px;color:white;border:1px solid var(--green);border-radius:6px;background:var(--green);font-size:13px;font-weight:650;cursor:pointer}.primary-button:hover{border-color:var(--green-dark);background:var(--green-dark)}/* #ifdef H5 */
+.auth-input:focus-visible,
+.composer-input:focus-visible,
+.field-control:focus-visible{outline:3px solid rgba(71, 122, 148, 0.35);outline-offset:2px}
+/* #endif */
+button:disabled,
+.is-disabled{opacity:.55;cursor:not-allowed}
+    .messages{width: 100%;
+  max-width: 1340px;flex:1;display:flex;flex-direction:column;gap:22px;margin:0 auto;padding:30px 26px 24px;overflow:auto}.welcome{margin:auto 0;padding:10px 0 30px}.welcome-eyebrow{display:inline-flex;align-items:center;gap:7px;padding:6px 9px;color:var(--green-dark);border:1px solid #d9e7de;border-radius:5px;background:var(--green-soft);font-size:11px;font-weight:700}.welcome-title{max-width:540px;margin:18px 0 10px;font:600 34px/1.24 Georgia,"Songti SC",serif}.welcome-text{max-width:550px;margin:0;color:#687570;font-size:14px;line-height:1.8}.suggestions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:25px}.suggestion{min-height:52px;padding:11px 13px;color:#384540;border:1px solid var(--line);border-radius:7px;background:white;text-align:left;cursor:pointer}.suggestion:hover{border-color:#a9c8b8;background:#f7faf7}.message{display:flex;gap:11px;align-items:flex-start}.message.user{flex-direction:row-reverse}.message .avatar{width:60px;height:60px;font-size:20px}.message.assistant .avatar{overflow:hidden;padding:0;background:#e8f2ed}.avatar-img{width:100%;height:100%;display:block;object-fit:cover;border-radius:50%}.message.user .avatar{color:#345d74;background:#dceaf1}.bubble-wrap{max-width:min(88%,860px)}.message.user .bubble-wrap{text-align:right}.message-label{margin:0 3px 5px;color:var(--muted);font-size:11px}.bubble{padding:12px 14px;border:1px solid var(--line);border-radius:3px 10px 10px;background:white;font-size:14px;line-height:1.75;overflow-wrap:anywhere;white-space:pre-wrap;text-align:left}.message.user .bubble{display:inline-block;color:white;border-color:var(--green);border-radius:10px 3px 10px 10px;background:var(--green)}.message.error .bubble{color:var(--red);border-color:#efd1cd;background:var(--red-soft)}.approval{margin-top:10px;padding:12px;border:1px solid #eedcbf;border-radius:7px;background:var(--amber-soft)}.approval-title{color:#704b1f;font-size:12px;font-weight:700}.approval-pre{max-height:190px;margin:8px 0 10px;overflow:auto;color:#5f4a32;font:12px/1.55 ui-monospace,Consolas,monospace;white-space:pre-wrap}.approval-actions{display:flex;gap:7px}.approve-button,
+.reject-button{min-height:32px;padding:0 10px;border-radius:5px;cursor:pointer}.approve-button{color:white;border:1px solid #8f672e;background:#9c7135}.reject-button{color:#79443e;border:1px solid #e4c3bd;background:white}
+    .composer-wrap{padding:0 24px 18px}.composer{width: 100%;
+  max-width: 1340px;margin:0 auto;padding:10px;border:1px solid #d7e0da;border-radius:9px;background:white;box-shadow:0 4px 20px rgba(36, 63, 50, 0.05)}.composer-input{width:100%;min-height:63px;max-height:180px;padding:7px 8px;resize:vertical;color:var(--ink);border:0;outline:0;background:transparent;font-size:14px;line-height:1.6}/* #ifdef H5 */
+.composer-input:focus-visible{outline:0}
+/* #endif */.composer-footer{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:4px 2px 0 7px}.composer-hint{color:#89948f;font-size:11px}.send-button{width:37px;height:35px;display:grid;place-items:center;color:white;border:0;border-radius:6px;background:var(--green);font-size:18px;cursor:pointer}.send-button-icon{width:17px;height:17px}.side{min-width:0;padding:22px 16px;border-left:1px solid var(--line);background:#f7f9f6}.side-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px}.side-heading-title{margin:0;font-size:14px;font-weight:700}.side-caption{margin:0 0 15px;color:var(--muted);font-size:11px;line-height:1.55}.upload-box{padding:13px;border:1px dashed #bdcdc2;border-radius:7px;background:white}.file-input{width:100%;color:#6c7872;font-size:11px}.upload-options{display:flex;gap:7px;margin-top:10px}.upload-options-input{min-width:0;flex:1;height:32px;padding:0 8px;border:1px solid var(--line);border-radius:5px;font-size:11px}.upload-options-select{width:92px;height:32px;padding:0 5px;border:1px solid var(--line);border-radius:5px;background:white;font-size:11px}.upload-submit{width:100%;margin-top:9px}.doc-list{display:grid;gap:8px;margin-top:17px}.doc-item{padding:11px;border:1px solid var(--line);border-radius:7px;background:white}.doc-title{overflow:hidden;font-size:12px;font-weight:650;text-overflow:ellipsis;white-space:nowrap}.doc-meta{display:flex;align-items:center;gap:6px;margin-top:7px;color:var(--muted);font-size:10px}.scope-tag{padding:2px 5px;color:var(--blue);border-radius:3px;background:var(--blue-soft)}.scope-tag.global{color:var(--green-dark);background:var(--green-soft)}.doc-actions{display:flex;justify-content:flex-end;margin-top:7px}.delete-doc{min-height:27px;padding:0 7px;color:#8c615c;border:1px solid #efdedb;border-radius:5px;background:#fffafa;font-size:10px;cursor:pointer}.empty-docs{padding:14px 9px;color:#7b8781;border:1px solid var(--line);border-radius:6px;background:white;font-size:11px;line-height:1.6}.side-divider{height:1px;margin:20px 0;background:var(--line)}.notice{position:fixed;z-index:5;right:20px;bottom:20px;max-width:min(420px,calc(100vw - 40px));padding:11px 14px;color:white;border-radius:6px;background:#263a33;box-shadow:var(--shadow);font-size:13px}.notice.error{background:#963f38}
+    .auth-screen{position:fixed;z-index:10;inset:0;display:grid;place-items:center;padding:18px;background:rgba(28, 43, 37, 0.36)}.auth-card{width: 100%;
+  max-width: 420px;padding:26px;border:1px solid var(--line);border-radius:9px;background:white;box-shadow:var(--shadow)}.auth-title{margin:0;font:24px Georgia,"Songti SC",serif}.auth-subtitle{margin:7px 0 20px;color:var(--muted);font-size:12px}.auth-tabs{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;border-radius:6px;background:#f0f3f0}.auth-tab{min-height:34px;border:0;border-radius:4px;background:transparent;color:#68746e;cursor:pointer}.auth-tab.active{color:var(--green-dark);background:white;box-shadow:0 1px 4px rgba(25, 40, 32, 0.1);font-weight:650}.auth-form{display:grid;gap:11px;margin-top:17px}.auth-field{display:grid;gap:6px;color:#53605a;font-size:12px}.auth-input{height:40px;padding:0 11px;border:1px solid #dce4de;border-radius:5px}.auth-submit{width:100%;margin-top:3px}.hidden{display:none!important}
+    @media(max-width:1050px){.app-shell{grid-template-columns:205px minmax(360px,1fr)}.side{grid-column:2;border-top:1px solid var(--line);border-left:0}.side-content{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}.side-divider{display:none}}
+    @media(max-width:700px){.app-shell{display:block}.rail{min-height:0;flex-direction:row;align-items:center;justify-content:space-between;padding:10px 13px;border-right:0;border-bottom:1px solid #dfe6e1}.brand{padding:0}.brand-mark{width:30px;height:30px}.brand-name{font-size:17px}.brand-sub,
+.rail-nav,
+.rail-bottom .logout-button{display:none}.account-box{padding:5px;border:0;background:transparent}.account-status{display:none}.main{min-height:calc(100vh - 52px)}.topbar{height:57px;padding:0 14px}.messages{min-height:42vh;padding:22px 14px}.welcome-title{font-size:29px}.suggestions{grid-template-columns:1fr}.composer-wrap{padding:0 12px 12px}.side{padding:17px 13px}.side-content{grid-template-columns:1fr}.side-divider{display:block;margin:15px 0}.bubble-wrap{max-width:86%}}
+    /* #ifdef H5 */
+    @media(prefers-reduced-motion:reduce){*,
+*::before,
+*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;transition-duration:.01ms!important}}
+    /* #endif */
+    .app-shell{grid-template-columns:232px minmax(0,1fr)}.rail-nav{position:relative;z-index:11}.chat-view{min-height:calc(100vh - 68px);display:flex;flex-direction:column}.documents-workspace{min-height:calc(100vh - 68px);overflow:auto;background:#f7f9f6}.documents-inner{width: 100%;
+  max-width: 1120px;margin:0 auto;padding:38px 34px 48px}.documents-hero{display:flex;align-items:flex-end;justify-content:space-between;gap:28px;padding-bottom:28px;border-bottom:1px solid var(--line)}.documents-eyebrow{color:var(--green-dark);font-size:11px;font-weight:750;letter-spacing:.16em}.documents-title{margin:9px 0 8px;font:600 32px/1.2 Georgia,"Songti SC",serif}.documents-text{max-width:580px;margin:0;color:#687570;font-size:13px;line-height:1.75}.documents-stats{display:flex;gap:10px}.documents-stat{min-width:126px;padding:16px;border:1px solid var(--line);border-radius:8px;background:white}.documents-stat-value{display:block;color:var(--green-dark);font:600 25px Georgia,serif}.documents-stat-label{display:block;margin-top:5px;color:var(--muted);font-size:10px}.documents-layout{display:grid;grid-template-columns:minmax(270px,340px) minmax(0,1fr);gap:22px;margin-top:24px;align-items:start}.documents-upload{position:sticky;top:20px;padding:20px;border-style:solid}.upload-heading{display:flex;gap:11px;align-items:flex-start;margin-bottom:20px}.panel-heading-title,
+.panel-heading-title{margin:0;font-size:15px}.panel-heading-text,
+.panel-heading-text{margin:5px 0 0;color:var(--muted);font-size:11px;line-height:1.55}.upload-symbol{width:31px;height:31px;display:grid;flex:0 0 auto;place-items:center;color:white;border-radius:7px;background:var(--green);font-size:19px}.field-label{display:grid;gap:6px;margin-top:14px;color:#58655f;font-size:11px;font-weight:650}.field-control,
+.field-control{width:100%;height:38px;padding:0 10px;color:var(--ink);border:1px solid var(--line);border-radius:6px;background:white;font-size:12px}.file-field{margin-top:0}.file-input{height:auto;min-height:46px;padding:7px;color:#65716c;border:1px dashed #a9c7b6;background:var(--green-soft);cursor:pointer}.file-detail{min-height:17px;color:var(--muted);font-size:10px;font-weight:400;line-height:1.5}.file-detail.ready{color:var(--green-dark);font-weight:650}.documents-library{min-width:0;padding:20px;border:1px solid var(--line);border-radius:8px;background:white}.library-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:15px;padding-bottom:16px;border-bottom:1px solid var(--line)}.documents-library .doc-list{grid-template-columns:repeat(2,minmax(0,1fr));margin-top:16px}.documents-library .doc-item{padding:15px;background:#fbfcfa}.documents-library .doc-title{font-size:13px}.documents-library .empty-docs{grid-column:1/-1;padding:38px;text-align:center;background:#fbfcfa}.documents-library .doc-actions{margin-top:13px}.documents-library .delete-doc{font-size:11px}
+    @media(max-width:900px){.documents-hero{align-items:flex-start;flex-direction:column}.documents-layout{grid-template-columns:1fr}.documents-upload{position:static}.documents-library .doc-list{grid-template-columns:1fr}}
+    @media(max-width:700px){.rail-nav{display:block;min-width:0}.nav-caption{display:none}.nav-list{display:flex;gap:4px}.nav-item{min-height:32px;padding:0 7px;gap:5px;font-size:11px}.nav-icon{width:14px;font-size:13px}.rail{gap:7px}.rail-bottom{margin-left:auto}.documents-inner{padding:24px 14px 36px}.documents-stats{width:100%}.documents-stat{min-width:0;flex:1}.documents-title{font-size:27px}}
+    .app-shell.modal-open{overflow:hidden}.approval-modal{position:fixed;z-index:30;inset:0;display:grid;place-items:center;padding:20px}.approval-backdrop{position:absolute;inset:0;background:rgba(19, 31, 27, 0.58);backdrop-filter:blur(3px)}.approval-dialog{position:relative;width: 100%;
+  max-width: 560px;max-height:min(720px,calc(100vh - 40px));overflow:auto;border:1px solid #dfd4bf;border-radius:12px;background:#fffdf9;box-shadow:0 24px 80px rgba(15, 29, 23, 0.28)}.approval-header{display:flex;gap:14px;padding:24px 24px 18px;border-bottom:1px solid #eee5d6}.approval-shield{width:42px;height:42px;display:grid;flex:0 0 auto;place-items:center;color:#7d551f;border-radius:10px;background:var(--amber-soft);font-size:20px}.approval-kicker{margin-bottom:5px;color:var(--amber);font-size:10px;font-weight:800;letter-spacing:.15em}.approval-heading{margin:0;font:600 22px/1.25 Georgia,"Songti SC",serif}.approval-subheading{margin:7px 0 0;color:#707974;font-size:12px;line-height:1.6}.approval-request-list{display:grid;gap:10px;padding:18px 24px}.approval-request{padding:15px;border:1px solid #e7dfd1;border-radius:8px;background:white}.approval-request-heading{display:flex;align-items:center;justify-content:space-between;gap:10px}.approval-request-title{font-size:13px}.approval-tool-name{padding:3px 6px;color:#79613d;border-radius:4px;background:#f7f0e5;font:10px ui-monospace,Consolas,monospace}.approval-description{margin:8px 0 0;color:#717a75;font-size:11px;line-height:1.55}.approval-fields{display:grid;gap:7px;margin-top:12px}.approval-field{display:grid;grid-template-columns:88px minmax(0,1fr);gap:10px;padding-top:7px;border-top:1px solid #f0ebe2}.approval-field-key{color:#8a918e;font-size:10px}.approval-field-value{margin:0;color:#33413b;font-size:12px;line-height:1.55;overflow-wrap:anywhere;white-space:pre-wrap}.approval-status{min-height:18px;margin:0 24px;color:var(--red);font-size:11px}.approval-footer{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:17px 24px 22px}.approval-note{max-width:260px;color:#8a918e;font-size:10px;line-height:1.5}.approval-buttons{display:flex;gap:8px}.modal-reject,
+.modal-approve{min-height:38px;padding:0 14px;border-radius:6px;font-size:12px;font-weight:650;cursor:pointer}.modal-reject{color:#784741;border:1px solid #dfc5c0;background:white}.modal-approve{color:white;border:1px solid var(--green);background:var(--green)}
+    @media(max-width:560px){.approval-modal{padding:10px}.approval-dialog{max-height:calc(100vh - 20px)}.approval-header,
+.approval-request-list{padding-left:17px;padding-right:17px}.approval-footer{align-items:stretch;flex-direction:column;padding:15px 17px 18px}.approval-note{max-width:none}.approval-buttons{display:grid;grid-template-columns:1fr 1fr}.approval-field{grid-template-columns:72px minmax(0,1fr)}}
+    .history-workspace{min-height:calc(100vh - 68px);overflow:auto;background:#fbfcfa}.history-inner{width: 100%;
+  max-width: 920px;margin:0 auto;padding:38px 34px 48px}.history-header{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;padding-bottom:24px;border-bottom:1px solid var(--line)}.history-heading{margin:9px 0 8px;font:600 32px/1.2 Georgia,"Songti SC",serif}.history-text{margin:0;color:#687570;font-size:13px;line-height:1.7}.history-list{display:grid;gap:10px;margin-top:20px}.history-item{width:100%;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:18px;padding:17px 18px;color:var(--ink);border:1px solid var(--line);border-radius:8px;background:white;text-align:left;cursor:pointer}.history-item:hover{border-color:#a9c8b8;background:#f8fbf9}.history-item.current{border-color:#8ebaa4;box-shadow:inset 3px 0 0 var(--green)}.history-title-row{display:flex;align-items:center;gap:8px;min-width:0}.history-title{overflow:hidden;font-size:14px;font-weight:700;text-overflow:ellipsis;white-space:nowrap}.history-pending{flex:0 0 auto;padding:3px 6px;color:#7b5524;border-radius:4px;background:var(--amber-soft);font-size:9px;font-weight:700}.history-preview{display:-webkit-box;margin-top:7px;overflow:hidden;color:#6b7671;font-size:12px;line-height:1.6;-webkit-box-orient:vertical;-webkit-line-clamp:2}.history-meta{display:grid;align-content:center;justify-items:end;gap:6px;color:#89938f;font-size:10px;white-space:nowrap}.history-resume{color:var(--green-dark);font-size:11px;font-weight:700}.history-empty{padding:44px 18px;color:var(--muted);border:1px solid var(--line);border-radius:8px;background:white;text-align:center;font-size:12px}.history-error{color:var(--red)}
+    @media(max-width:700px){.history-inner{padding:24px 14px 36px}.history-header{align-items:flex-start;flex-direction:column}.history-heading{font-size:27px}.history-item{grid-template-columns:1fr}.history-meta{display:flex;justify-content:space-between}.nav-list{flex-wrap:wrap}}
+    page{height:100%;overflow:hidden}page{min-height:0}.app-shell{height:100vh;height:100dvh;min-height:0;overflow:hidden}.rail{height:100%;min-height:0;overflow-x:hidden;overflow-y:auto}.main{height:100%;min-height:0;display:grid;grid-template-rows:68px minmax(0,1fr);overflow:hidden}.topbar{height:auto;min-height:0}.chat-view{height:100%;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 258px;overflow:hidden}.chat-column{min-width:0;min-height:0;display:grid;grid-template-rows:minmax(0,1fr) auto;overflow:hidden}.messages{min-height:0;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain}.composer-wrap{min-width:0;flex:none}.documents-workspace,
+.history-workspace{height:100%;min-height:0;overflow:auto}
+    .chat-history-panel{min-width:0;min-height:0;display:grid;grid-template-rows:auto minmax(0,1fr) auto;padding:21px 14px 14px;border-left:1px solid var(--line);background:#f6f8f5;overflow:hidden}.chat-history-header{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 3px 13px}.chat-history-heading{margin:0;font-size:13px;font-weight:750}.icon-button{width:30px;height:30px;display:grid;place-items:center;padding:0;color:#65716c;border:1px solid var(--line);border-radius:6px;background:white;cursor:pointer}.chat-history-titles{min-height:0;display:grid;align-content:start;gap:4px;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain}.chat-history-title{width:100%;min-width:0;min-height:38px;padding:8px 9px;overflow:hidden;color:#56625d;border:1px solid transparent;border-radius:6px;background:transparent;text-align:left;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}.chat-history-title:hover{color:var(--ink);background:white}.chat-history-title.current{color:var(--green-dark);border-color:#d7e6dd;background:var(--green-soft);font-weight:700}.chat-history-empty{padding:16px 8px;color:var(--muted);font-size:11px;line-height:1.6;text-align:center}.chat-history-all{width:100%;margin-top:12px}
+    @media(max-width:1050px){.chat-view{grid-template-columns:minmax(0,1fr)}.chat-history-panel{display:none}}
+    @media(max-width:700px){.app-shell{height:100dvh;display:grid;grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr)}.rail{height:auto;overflow:visible}.main{height:100%;min-height:0;grid-template-rows:57px minmax(0,1fr)}.messages{min-height:0}.documents-workspace,
+.history-workspace{height:100%;min-height:0}}
+    .approval-dialog{width:min(640px,100%)}.approval-decision{margin-top:14px;padding-top:12px;border-top:1px solid #f0ebe2}.approval-decision-label{margin-bottom:8px;color:#6f7874;font-size:10px;font-weight:700}.decision-options{display:flex;flex-wrap:wrap;gap:7px}.decision-option{min-height:34px;display:inline-flex;align-items:center;gap:6px;padding:0 10px;color:#53605a;border:1px solid #ddd9cf;border-radius:6px;background:#fafbf9;font-size:11px;cursor:pointer}.decision-option.is-active{color:var(--green-dark);border-color:#8ebaa4;background:var(--green-soft);font-weight:700}.decision-option.other.is-active{color:#79551f;border-color:#d7b77f;background:var(--amber-soft)}.approval-other-wrap{display:grid;gap:6px;margin-top:10px}.approval-other-label{color:#675c4c;font-size:10px;font-weight:700}.approval-other{width:100%;min-height:72px;padding:9px 10px;resize:vertical;color:var(--ink);border:1px solid #dbc9a8;border-radius:6px;background:#fffdf9;font-size:12px;line-height:1.55}/* #ifdef H5 */
+.approval-other::placeholder{color:#a29a8d}
+/* #endif */.modal-submit{color:white;border:1px solid var(--green);background:var(--green)}
+    .session-del{flex:0 0 auto;width:26px;height:26px;display:grid;place-items:center;padding:0;color:#a89a96;border:1px solid transparent;border-radius:5px;background:transparent;font-size:12px;line-height:1;cursor:pointer}.session-del:hover{color:#a9443b;border-color:#efd1cd;background:#f8ecea}.session-del:disabled{opacity:.5;cursor:not-allowed}
+    .history-actions{display:flex;flex-direction:row;align-items:center;justify-content:flex-end;gap:2px}.history-actions .session-del{width:22px;height:22px;font-size:11px}
+    .chat-history-item{min-width:0}.chat-history-title-row{display:flex;align-items:center;gap:2px}.chat-history-title-row .chat-history-title{flex:1;min-width:0}.topbar-heading{min-width:0}.topbar-title-row{display:flex;align-items:center;gap:7px;min-width:0}.topbar-title{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.thread-title-edit{display:flex;align-items:center;gap:5px;min-width:0}.thread-title-input{width:min(360px,45vw);height:34px;padding:0 9px;color:var(--ink);border:1px solid #b9d0c2;border-radius:6px;background:white;font-size:16px;font-weight:700}.thread-title-action{width:30px;height:30px}.thread-title-save{color:white;border-color:var(--green);background:var(--green)}
+    .message.assistant .bubble{white-space:normal}.message.assistant .bubble.streaming{white-space:pre-wrap}/* #ifdef H5 */
+.markdown-body>:first-child{margin-top:0}.markdown-body>:last-child{margin-bottom:0}
+/* #endif */.markdown-body p{margin:0 0 10px}.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3,
+.markdown-body h4{margin:18px 0 8px;color:#24332d;line-height:1.35}.markdown-body h1{font-size:20px}.markdown-body h2{padding-bottom:5px;border-bottom:1px solid var(--line);font-size:17px}.markdown-body h3{font-size:15px}.markdown-body h4{font-size:14px}.markdown-body ul,
+.markdown-body ol{margin:7px 0 11px;padding-left:22px}.markdown-body li{margin:3px 0}.markdown-body blockquote{margin:10px 0;padding:7px 12px;color:#5e6b65;border-left:3px solid #91b9a6;background:#f3f7f4}.markdown-body code{padding:2px 5px;border-radius:4px;background:#edf2ef;font:12px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace}.markdown-body pre{max-width:100%;margin:11px 0;padding:12px;overflow:auto;color:#e8eee9;border-radius:6px;background:#27352f}.markdown-body pre code{padding:0;color:inherit;background:transparent}.markdown-body table{width:100%;margin:11px 0;border-collapse:collapse;font-size:12px}.markdown-body th,
+.markdown-body td{padding:7px 9px;border:1px solid #dfe6e1;text-align:left}.markdown-body th{background:#f2f6f3}.markdown-body a{color:var(--blue);text-decoration-thickness:1px;text-underline-offset:3px}.markdown-body hr{margin:16px 0;border:0;border-top:1px solid var(--line)}.markdown-body img{max-width:100%;height:auto;border-radius:6px}
+    .elapsed-time{display:flex;align-items:center;gap:9px;margin:4px 0 9px;color:#7f8985;font-size:11px;font-weight:600}.elapsed-time::after{content:"";height:1px;flex:1;background:var(--line)}.message-time{display:block;margin:5px 3px 0;color:#8a9590;font-size:11px;line-height:1.2;cursor:default}.time-hover{position:relative;outline:none}.time-hover::after{content:attr(data-full-time);position:absolute;z-index:8;left:0;bottom:calc(100% + 7px);width:max-content;max-width:min(320px,70vw);padding:7px 9px;color:white;border-radius:5px;background:#263a33;box-shadow:0 7px 22px rgba(29, 45, 38, 0.18);font-size:11px;font-weight:500;line-height:1.4;white-space:normal;pointer-events:none;opacity:0;transform:translateY(3px);transition:opacity .14s ease,transform .14s ease}/* #ifdef H5 */
+.time-hover:hover::after,
+.time-hover:focus-visible::after{opacity:1;transform:translateY(0)}
+/* #endif */.message.user .time-hover::after{right:0;left:auto}.conversation-date-divider{display:flex;align-items:center;gap:12px;margin:4px 0 0;color:#89938f;font-size:11px;font-weight:650}.conversation-date-divider::before,
+.conversation-date-divider::after{content:"";height:1px;flex:1;background:var(--line)}
+
+
+    .persona-picker{display:flex;align-items:center;gap:7px;color:var(--muted);font-size:11px;white-space:nowrap}.persona-picker-select{max-width:170px;height:34px;padding:0 28px 0 9px;color:var(--ink);border:1px solid var(--line);border-radius:6px;background:white;font-size:12px}.chat-column{grid-template-rows:auto minmax(0,1fr) auto}.chat-persona-bar{display:flex;align-items:center;gap:10px;padding:9px 25px 0;color:#73807a;font-size:10px}.chat-persona-current{min-width:0;overflow:hidden;color:#42534b;text-overflow:ellipsis;white-space:nowrap}.chat-persona-latest{min-height:27px;padding:0 8px;color:var(--blue);border:1px solid #cddde4;border-radius:5px;background:white;font-size:10px;cursor:pointer}
+    .history-tools{display:flex;align-items:center;flex-wrap:wrap;justify-content:flex-end;gap:7px}.history-search{display:flex;align-items:center;gap:5px;height:34px;padding:0 9px;border:1px solid var(--line);border-radius:6px;background:white}.history-search-input{width:150px;border:0;outline:0;background:transparent;color:var(--ink);font-size:11px}.history-search-icon{color:var(--muted);font-size:16px}.history-tools-select{height:34px;max-width:128px;padding:0 7px;border:1px solid var(--line);border-radius:6px;background:white;color:var(--ink);font-size:11px}.history-filters{display:flex;gap:3px;padding:3px;border-radius:6px;background:#eef3ef}.history-filter-button{min-height:27px;padding:0 8px;color:var(--muted);border:0;border-radius:4px;background:transparent;font-size:10px;cursor:pointer}.history-filter-button.active{color:var(--green-dark);background:white;font-weight:700}.history-item.favorite{border-color:#cdb57b}.history-tag{padding:2px 5px;color:var(--green-dark);border-radius:3px;background:var(--green-soft);font-size:9px}.visually-hidden{position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+    .persona-workspace{height:100%;min-height:0;overflow:auto;background:#f7f9f6}.persona-inner{width: 100%;
+  max-width: 1120px;margin:0 auto;padding:34px}.persona-hero{padding-bottom:22px;border-bottom:1px solid var(--line)}.persona-title{margin:8px 0 7px;font:600 30px/1.2 Georgia,"Songti SC",serif}.persona-text{max-width:680px;margin:0;color:#687570;font-size:13px;line-height:1.7}.persona-layout{display:grid;grid-template-columns:minmax(270px,390px) minmax(0,1fr);gap:22px;margin-top:22px;align-items:start}.persona-editor,
+.persona-library{min-width:0;padding:19px;border:1px solid var(--line);border-radius:8px;background:white}.persona-panel-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding-bottom:14px;border-bottom:1px solid var(--line)}.persona-panel-title{margin:0;font-size:14px}.persona-panel-text{margin:5px 0 0;color:var(--muted);font-size:11px;line-height:1.55}.persona-form{display:grid;gap:11px;margin-top:14px}.persona-field{display:grid;gap:5px;color:#58655f;font-size:11px;font-weight:650}.persona-field-input,
+.persona-field-textarea{width:100%;padding:9px 10px;color:var(--ink);border:1px solid var(--line);border-radius:5px;background:#fff;font-size:12px;line-height:1.55}.persona-field-textarea{min-height:72px;resize:vertical}.persona-form .persona-name-input{height:37px}.persona-form-actions{display:flex;gap:8px;margin-top:3px}.persona-form-button{flex:1}.persona-preview{margin-top:15px;padding:12px 13px;border-left:3px solid var(--blue);background:#f1f6f8}.persona-preview-label{color:var(--blue);font-size:9px;font-weight:800;letter-spacing:.08em}.persona-preview-text{margin-top:6px;color:#42545d;font-size:11px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere}.persona-list{display:grid;gap:8px;margin-top:14px}.persona-item{padding:12px;border:1px solid var(--line);border-radius:6px;background:#fbfcfa}.persona-item-heading{display:flex;align-items:center;justify-content:space-between;gap:10px}.persona-item-name{min-width:0;overflow:hidden;font-size:12px;font-weight:700;text-overflow:ellipsis;white-space:nowrap}.persona-kind{flex:0 0 auto;padding:3px 6px;color:var(--blue);border-radius:3px;background:var(--blue-soft);font-size:9px;font-weight:700}.persona-kind.custom{color:var(--green-dark);background:var(--green-soft)}.persona-item-desc{margin:7px 0 0;color:#69756f;font-size:11px;line-height:1.55}.persona-item-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}.persona-item-actions .quiet-button{min-height:28px;font-size:10px}.persona-item-actions .persona-delete{color:#8c615c}.persona-empty{padding:27px 12px;color:var(--muted);border:1px dashed #cbd8d0;border-radius:6px;text-align:center;font-size:11px;line-height:1.6}
+    .app-shell.settings-mode{grid-template-columns:minmax(0,1fr)}.app-shell.settings-mode>.rail{display:none}.settings-workspace{height:100%;min-height:0;overflow:auto;background:#fff}.main.settings-active>.topbar{display:none}.settings-inner{width: 100%;
+  max-width: 840px;margin:0 auto;padding:78px 0 60px}.settings-hero{padding-bottom:0;border-bottom:0}.settings-title{margin:8px 0 9px;font:500 33px/1.2 Georgia,"Songti SC",serif}.settings-text{max-width:650px;margin:0;color:#577b91;font-size:13px;line-height:1.7}.settings-eyebrow{color:#17685d;font-size:11px;font-weight:800;letter-spacing:.16em}.settings-list{display:grid;gap:14px;margin-top:48px}.settings-section{display:flex;align-items:center;gap:18px;width:100%;min-height:105px;padding:19px 25px;color:var(--ink);border:1px solid #dfe6e1;border-radius:10px;background:white;text-align:left;cursor:pointer;box-shadow:none}.settings-section:hover{border-color:#a9c8b8;background:#fbfdfb}.settings-section-icon{width:54px;height:54px;display:grid;flex:0 0 auto;place-items:center;color:#257d6a;border-radius:11px;background:#e8f3ee;font-size:22px;font-weight:700}.settings-icon{width:25px;height:25px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.settings-section-copy{min-width:0;flex:1}.settings-section-title{display:block;font-size:17px;font-weight:700}.settings-section-desc{display:block;margin-top:7px;color:#5c7f93;font-size:13px;line-height:1.5}.settings-section-status{display:none}.settings-arrow{margin-left:auto;color:#172f2a;font-size:25px;font-weight:300;line-height:1}.settings-detail{width: 100%;
+  max-width: 760px;margin:0 auto;padding:27px 34px 42px}.settings-back{display:inline-flex;align-items:center;gap:6px;min-height:31px;padding:0 8px;color:#66716d;border:1px solid var(--line);border-radius:5px;background:white;font-size:11px;cursor:pointer}.settings-back:hover{border-color:#a9c8b8;background:#f7faf7}.settings-detail-head{padding:22px 0 18px;border-bottom:1px solid var(--line)}.settings-detail-title{margin:7px 0 5px;font:600 27px/1.2 Georgia,"Songti SC",serif}.settings-detail-text{margin:0;color:var(--muted);font-size:12px;line-height:1.6}.settings-card{margin-top:18px;padding:19px;border:1px solid var(--line);border-radius:8px;background:white}.settings-card-title{margin:0;font-size:14px}.settings-card-desc{margin:5px 0 0;color:var(--muted);font-size:11px;line-height:1.55}.settings-fields{display:grid;gap:12px;margin-top:17px}.settings-field{display:grid;gap:6px;color:#58655f;font-size:11px;font-weight:650}.settings-field-input{width:100%;height:38px;padding:0 10px;color:var(--ink);border:1px solid var(--line);border-radius:6px;background:white;font-size:12px}.settings-field-help{color:var(--muted);font-size:10px;font-weight:400;line-height:1.5}.settings-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px;padding-top:16px;border-top:1px solid var(--line)}.settings-action-button{min-height:34px;padding:0 11px;border-radius:6px;font-size:11px;font-weight:650;cursor:pointer}.settings-primary{color:white;border:1px solid var(--green);background:var(--green)}.settings-quiet{color:#66716d;border:1px solid var(--line);background:white}.settings-danger{color:#8c615c;border:1px solid #efdedb;background:#fffafa}.settings-meta{display:flex;flex-wrap:wrap;gap:15px;margin-top:14px;color:var(--muted);font-size:10px}.settings-meta-value{color:#53615b;font-weight:650}.settings-notice{display:flex;gap:8px;margin-top:14px;padding:10px 11px;color:#53615b;border-left:3px solid var(--blue);background:var(--blue-soft);font-size:10px;line-height:1.55}.settings-choice-group{display:grid;gap:8px;margin-top:16px}.settings-choice-label{color:#58655f;font-size:11px;font-weight:650}.settings-choice-row{display:flex;flex-wrap:wrap;gap:7px}.settings-choice{display:inline-flex;align-items:center;gap:7px;min-height:34px;padding:0 11px;color:#58655f;border:1px solid var(--line);border-radius:5px;background:white;font-size:12px;cursor:pointer}.settings-choice.is-active{color:var(--green-dark);border-color:#8ebaa4;background:var(--green-soft);font-weight:650}.settings-choice-dot{margin:0;accent-color:var(--green)}
+    .app-shell.settings-mode,
+.main.settings-active{grid-template-rows:minmax(0,1fr)}
+    .settings-overview-heading{display:flex;align-items:center;justify-content:space-between;gap:16px}
+    @media(max-width:900px){.persona-layout{grid-template-columns:1fr}.persona-inner{padding:28px 24px}.settings-inner{padding:28px 24px}.settings-detail{padding:24px}}
+    @media(max-width:700px){.persona-inner{padding:22px 14px 34px}.persona-title{font-size:26px}.persona-picker{gap:4px}.persona-picker-label{display:none}.persona-picker-select{max-width:125px;height:31px;font-size:11px}.topbar{gap:5px;padding:0 9px}.topbar-actions{gap:5px}.topbar-title{max-width:58vw;font-size:15px}.topbar-meta{font-size:10px}.persona-editor,
+.persona-library{padding:15px}.chat-persona-bar{gap:6px;padding:7px 12px 0}.chat-persona-current{font-size:9px}.settings-inner{padding:22px 14px 34px}.settings-title{font-size:26px}.settings-section{min-height:74px;padding:13px}.settings-section-status{display:none}.settings-detail{padding:18px 14px 34px}.settings-detail-title{font-size:25px}.settings-card{padding:15px}.settings-actions>view{flex:1}}
+    @media(max-width:900px){.persona-layout{grid-template-columns:1fr}.persona-inner{padding:28px 24px}}
+    @media(max-width:700px){.persona-inner{padding:22px 14px 34px}.persona-title{font-size:26px}.persona-picker{gap:4px}.persona-picker-label{display:none}.persona-picker-select{max-width:125px;height:31px;font-size:11px}.topbar{gap:5px;padding:0 9px}.topbar-actions{gap:5px}.topbar-title{max-width:38vw;font-size:15px}.topbar-meta{font-size:10px}.persona-editor,
+.persona-library{padding:15px}.chat-persona-bar{gap:6px;padding:7px 12px 0}.chat-persona-current{font-size:9px}}
+    .app-shell{font-size:calc(1em * var(--ui-scale,1))}
+  
+
+
+    .stream-controls{display:flex;align-items:center;gap:6px}.stream-control{min-height:32px;padding:0 9px;color:#52615a;border:1px solid var(--line);border-radius:5px;background:#fff;font-size:11px;cursor:pointer}.stream-control:hover,
+.code-tool:hover{border-color:#a9c8b8;background:#f7faf7}.stream-control.cancel{color:#8d4c45}.message-actions{display:flex;justify-content:flex-end;margin-top:7px}.message-action{min-height:26px;padding:0 7px;color:var(--muted);border:0;border-radius:4px;background:transparent;font-size:11px;cursor:pointer}.message-action:hover{color:var(--green-dark);background:var(--green-soft)}
+    .code-block-shell{position:relative;min-width:0;margin:11px 0}.code-block-shell pre{margin:0;padding-top:39px}.code-toolbar{position:absolute;z-index:1;top:6px;right:7px;display:flex;gap:4px}.code-tool{min-height:25px;padding:0 7px;color:#d8e3dc;border:1px solid #56675e;border-radius:4px;background:#34463d;font-size:10px;cursor:pointer}.code-dialog{width:min(1100px,calc(100vw - 28px));max-width:none;height:min(88vh,900px);max-height:none;padding:0;border:1px solid #53645b;border-radius:7px;color:#e8eee9;background:#27352f;box-shadow:0 20px 70px rgba(0, 0, 0, 0.35)}/* #ifdef H5 */
+.code-dialog::backdrop{background:rgba(16, 25, 21, 0.72)}
+/* #endif */.code-dialog-head{height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 12px 0 16px;border-bottom:1px solid #4b5a52;color:#d9e3dd;font-size:12px}.code-dialog-pre{height:calc(100% - 48px);margin:0;padding:17px;overflow:auto;color:inherit;font:13px/1.65 ui-monospace,SFMono-Regular,Consolas,monospace;tab-size:2}.code-dialog-code{font:inherit;white-space:pre}.composer-footer .composer-hint{flex:1}.stream-controls.hidden{display:none}
+    @media(max-width:520px){.composer-footer{flex-wrap:wrap}.stream-controls{order:2;width:100%}.stream-control{flex:1}.code-dialog{width:calc(100vw - 16px);height:90vh}.code-dialog-pre{font-size:12px}}
+
+
+/* ==========================================================================
+   移植补充：原站没有、但 uni-app 需要显式声明或替换的规则
+   ========================================================================== */
+
+/* 自定义单选圆点，替代原站的 radio + :has()，跨端表现一致 */
+.decision-dot {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 auto;
+  border: 1px solid #c3ccc7;
+  border-radius: 50%;
+  background: white;
+}
+.decision-option.is-active .decision-dot {
+  border-color: var(--green);
+  border-width: 4px;
+  background: white;
+}
+.decision-option.other.is-active .decision-dot {
+  border-color: var(--amber);
+}
+
+/* 隐藏字符，用于无障碍标签与视觉隐藏文本 */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* 滚动容器：mini program 依赖 <scroll-view>，需要显式高度约束 */
+.scroll-fill {
+  height: 100%;
+  min-height: 0;
+}
+
+/* <scroll-view> 会在外面多包一层滚动壳，而原站是把盒模型直接放在滚动容器上的。
+   如果保留 display:flex/grid + gap/padding，内层滚动壳会被压成内容高度而失去滚动能力，
+   因此这里把布局属性下移到内层包装元素。视觉结果与原站一致。 */
+.messages {
+  display: block;
+  padding: 0;
+}
+.messages-inner {
+  width: 100%;
+  /* .uni-scroll-view-content 是 height:100%，所以这里撑满才能让
+     `.welcome { margin: auto 0 }` 的垂直居中生效 */
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding: 30px 26px 24px;
+}
+.chat-history-titles {
+  display: block;
+}
+.chat-history-titles-inner {
+  width: 100%;
+  display: grid;
+  align-content: start;
+  gap: 4px;
+}
+@media (max-width: 700px) {
+  .messages-inner {
+    padding: 22px 14px;
+  }
+}
+
+/* 表单控件。
+   uni-app 的 <input>/<textarea> 有自己的基础尺寸，其中 `uni-textarea` 默认
+   `height: 150px`，会把原站 63px / 72px 的多行输入框整个撑高，必须显式给高度。
+
+   内层真实元素由 uni 的基础样式负责：
+     .uni-textarea-textarea / .uni-input-input 都是 position:absolute; height:100%
+     且 `font: inherit`，所以只要承载 class 的那一层尺寸与字体正确，内层元素
+     会自动铺满并继承字体——不需要也无法再写后代规则。
+
+   踩过的坑：uni-app 编译时会把样式里写的 `textarea` / `input` 标签选择器改写成
+   `uni-textarea` / `uni-input`（例如 `.composer-input textarea` 变成
+   `.composer-input uni-textarea`）。那是组件元素自身，写成后代选择器永远不命中。 */
+.auth-input,
+.field-control,
+.composer-input,
+.thread-title-input,
+.approval-other,
+.file-picker {
+  /* 原站依赖 `input, textarea, select { font: inherit }`，这里按类补齐 */
+  font-family: inherit;
+}
+
+.composer-input {
+  height: 63px;
+  min-height: 63px;
+  max-height: 180px;
+}
+.approval-other {
+  height: 72px;
+  min-height: 72px;
+}
+
+.approval-other-placeholder {
+  color: #a29a8d;
+}
+
+/* 原站这些元素都是 <button>：浏览器会把按钮里的文字水平+垂直居中，
+   而 uni-app 里换成 <view> 之后两者都会丢失。
+   注意 <button> 的居中作用在内容盒上，所以这里用 flex 复刻，而不是靠 line-height。 */
+.quiet-button,
+.primary-button,
+.auth-tab,
+.delete-doc,
+.approve-button,
+.reject-button,
+.modal-approve,
+.modal-reject,
+.suggestion,
+.file-picker-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+/* 允许文字在按钮内部换行（flex 项默认 min-width:auto 不会收缩） */
+.quiet-button text,
+.primary-button text,
+.auth-tab text,
+.delete-doc text,
+.approve-button text,
+.reject-button text,
+.modal-approve text,
+.modal-reject text,
+.suggestion text {
+  min-width: 0;
+}
+/* 左对齐的按钮：水平方向仍然靠左 */
+.suggestion {
+  justify-content: flex-start;
+}
+
+/* 原站的 composer 里，<textarea> 是行内块元素，会在基线下留出约 4px 的行盒间隙，
+   `.composer` 因此比其内容高 4px（实测 128px = 124px 内容 + 4px 间隙）。
+   uni-textarea 默认是 display:block，没有这段间隙，这里用等值的下外边距还原，
+   比依赖字体度量去复刻行盒更稳定（顺带说明：直接写 display:inline-block 会得到
+   11px 而非 4px，因为 uni 的内部结构与原生的行盒基线不同）。 */
+.composer-input {
+  display: block;
+  margin-bottom: 4px;
+}
+
+/* 文件选择区里的文件名，超长省略 */
+.file-picker-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 使用范围选择器：替代原站的原生 <select> */
+.field-picker {
+  display: block;
+  width: 100%;
+}
+.field-control-picker {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* 欢迎页标题的两行文本（原站用 <br> 换行，这里用两个块级 text 等价实现） */
+.welcome-title-line {
+  display: block;
+}
+
+/* 文件选择区：替代原生 <input type="file"> */
+.file-picker {
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  padding: 7px;
+  color: #65716c;
+  border: 1px dashed #a9c7b6;
+  border-radius: 6px;
+  background: var(--green-soft);
+  font-size: 11px;
+}
+.file-picker-button {
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  margin-right: 9px;
+  padding: 0 10px;
+  color: white;
+  border-radius: 5px;
+  background: var(--green);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+/* 消息气泡宽度：等价于原站的 max-width: min(88%, 860px) */
+@media (min-width: 978px) {
+  .bubble-wrap {
+    max-width: 860px;
+  }
+}
+
+/* Markdown 表格在 rich-text 中走内联样式，这里补一层 H5 兜底 */
+.markdown-body table {
+  table-layout: auto;
+}
+
+/* ==========================================================================
+   v2 新增区域
+   ========================================================================== */
+
+/* v2 的按钮类元素更多了，同样需要在换成 <view> 之后补回 <button> 的居中 */
+.stream-control,
+.history-filter-button,
+.code-tool,
+.message-action,
+.settings-quiet,
+.settings-primary,
+.settings-danger,
+.settings-action-button,
+.persona-form-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+.stream-control text,
+.history-filter-button text,
+.code-tool text,
+.message-action text,
+.settings-quiet text,
+.settings-primary text,
+.settings-danger text,
+.settings-action-button text,
+.persona-form-button text {
+  min-width: 0;
+}
+
+/* 设置页单选圆点，替代原生 radio + :has() */
+.settings-choice-dot {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  border: 1px solid #c3ccc7;
+  border-radius: 50%;
+  background: white;
+}
+.settings-choice.is-active .settings-choice-dot {
+  border-color: var(--green);
+  border-width: 4px;
+  background: white;
+}
+
+/* 全屏代码弹窗：原站用原生 <dialog> + showModal()，它自带
+   position:fixed / inset:0 / margin:auto 的居中以及 ::backdrop 蒙层。
+   uni-app 没有 <dialog> 元素，这里补上等价的定位，并用一个独立的蒙层元素
+   替代 ::backdrop。 */
+.code-dialog {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 41;
+  margin: auto;
+  display: block;
+}
+.code-dialog-backdrop {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 40;
+  background: rgba(16, 25, 21, 0.72);
+}
+
+/* 代码块浮层工具栏里的按钮承载复制/全屏动作 */
+.code-block-shell .code-tool {
+  line-height: 1.6;
+}
+
+/* 会话列表里的标签行（原站由 JS 动态创建 .history-tags，没有独立样式规则） */
+.history-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 8px;
+}
+
+/* <picker> 在 uni-app 里默认是行内元素，需要撑满才能和旁边的输入框对齐 */
+.history-tools-picker,
+.field-picker {
+  display: block;
+}
+
+/* 标签筛选下拉的静态展示盒，与输入框同高 */
+.history-tools-select {
+  display: flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 9px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: white;
+  font-size: 11px;
+}
+
+/* 角色表单的多行输入框：原站 min-height:72px，但 uni-textarea 默认 150px，
+   必须显式给高度，否则四个字段会被撑到 150px */
+.persona-field-textarea {
+  height: 72px;
+  min-height: 72px;
+}
+
+/* <picker> 默认是行内元素；这些位置都需要它占满一行 */
+.chat-persona-bar picker,
+.history-tools picker,
+.field-label picker {
+  display: block;
+  min-width: 0;
+}
+
+/* 对话页角色下拉：原站这里是一个**没有加样式**的原生 <select>（高约 18px），
+   `.persona-picker-select` 那套 34px 的样式属于角色工作区的旧结构。
+   为了不把消息区整体下推 16px，这里按原生 select 的尺寸还原。 */
+.chat-persona-bar .persona-picker-select {
+  height: 18px;
+  min-height: 18px;
+  width: auto;
+  max-width: 120px;
+  padding: 0 3px;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: white;
+  font-size: 11px;
+}
+
+/* 桌面端显示「新建会话」文字；移动端由 adaptive.scss 切换为 + 图标 */
+.topbar-new-icon {
+  display: none;
+}
+
+/* --------------------------------------------------------------------------
+ * 非 H5：代码块拆分渲染
+ * rich-text 内部节点无法绑定点击事件，因此 MessageItem 在 App / 小程序端
+ * 把代码块拆成原生 view 单独渲染，复制与全屏按钮挂在这个容器上。
+ * -------------------------------------------------------------------------- */
+.md-segment {
+  display: block;
+}
+
+.md-code-block {
+  margin: 11px 0;
+  overflow: hidden;
+  border-radius: 6px;
+  background: #27352f;
+}
+
+.md-code-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 9px;
+  border-bottom: 1px solid #3d4c44;
+}
+
+.md-code-lang {
+  color: #9db3a8;
+  font-size: 10px;
+}
+
+.md-code-actions {
+  display: flex;
+  gap: 5px;
+}
+
+.md-code-tool {
+  padding: 3px 8px;
+  color: #d8e3dc;
+  border: 1px solid #56675e;
+  border-radius: 4px;
+  font-size: 10px;
+}
+
+.md-code-scroll {
+  width: 100%;
+}
+
+.md-code-text {
+  display: block;
+  padding: 11px 12px;
+  color: #e8eee9;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  white-space: pre;
+}
+
+/* --------------------------------------------------------------------------
+ * 聊天图片：输入区待发送缩略图 + 消息气泡内的图片
+ * -------------------------------------------------------------------------- */
+.attach-button {
+  width: 32px;
+  height: 30px;
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  color: var(--green-dark);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.attach-button.is-disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.composer-images {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 6px 8px 2px;
+}
+
+.composer-image-item {
+  position: relative;
+  width: 64px;
+  height: 64px;
+}
+
+.composer-image {
+  width: 100%;
+  height: 100%;
+  display: block;
+  border-radius: 6px;
+}
+
+.composer-image-remove {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  border-radius: 50%;
+  background: rgba(20, 30, 26, 0.72);
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.message-images {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+  justify-content: flex-start;
+}
+
+.message.user .message-images {
+  justify-content: flex-end;
+}
+
+.message-image {
+  width: 140px;
+  height: 140px;
+  display: block;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+/* 模型/网络不可用时前端兜底的演示回答标签 */
+.mock-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #fff3e2;
+  color: #9a5b1d;
+  font-size: 11px;
+  line-height: 1.4;
+}

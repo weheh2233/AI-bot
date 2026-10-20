@@ -1,0 +1,28 @@
+/* uni-app 全局 SCSS 变量（会自动注入到每个组件的 <style lang="scss">）
+ * 取值与原站 web/index.html 的 :root 变量保持一致，改色请同时改
+ * tools/build_styles.py 生成出来的 src/styles/app.scss。 */
+
+$canvas: #f3f5f2;
+$paper: #ffffff;
+$ink: #1e2826;
+$muted: #75817d;
+$line: #e3e9e5;
+$green: #28765f;
+$green-dark: #1d5a49;
+$green-soft: #e8f2ed;
+$blue: #477a94;
+$blue-soft: #eaf1f5;
+$amber: #a36a24;
+$amber-soft: #faf0df;
+$red: #a9443b;
+$red-soft: #f8ecea;
+
+$radius-sm: 6px;
+$radius-md: 8px;
+$radius-lg: 12px;
+
+/* uni-ui / uni-app 内置组件的主题变量 */
+$uni-color-primary: $green;
+$uni-text-color: $ink;
+$uni-bg-color: $canvas;
+$uni-border-color: $line;
