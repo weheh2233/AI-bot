@@ -18,20 +18,25 @@ RAG 检索、工具调用、人工审批、流式对话和多用户隔离能力�
 - **人在回路**：写入长期记忆前暂停执行，由用户选择允许、拒绝或补充处理意见。
 - **工具调用**：包含当前时间、记忆读写、知识库检索、网页搜索和网页正文提取。
 - **多用户隔离**：JWT 登录认证；会话、私有资料和记忆均按用户隔离。
+- **图片消息**：每轮最多 5 张、单会话最多 20 张；前端压缩后以 base64 data URL 发送，后端转换为多模态内容块交给模型。
+- **多端前端**：uni-app（Vue 3 + TypeScript）提供 H5、微信小程序和 App 三端；仓库同时保留原生 HTML/JS 网页端。
+- **离线演示兜底**：模型或网络异常时自动使用 50+ 条本地 mock 回答并标注；个人设置中可手动切换「真实模型 / Mock 离线模拟」。
 - **流式输出**：通过 SSE 将 Agent 回复实时推送到网页端。
 - **LangSmith 可观测性**：可选开启 Agent 全链路 tracing，查看模型、工具、延迟、错误与会话线程。
 - **会话管理**：查看、恢复、重命名和删除历史会话。
 - **会话组织**：按更新时间倒序列出会话，支持标题倒排搜索、收藏夹和标签。
 - **角色设定**：系统预设与用户自建角色均可管理；会话保存角色快照，切换从下一条消息生效，不追溯修改旧消息。
 - **导出**：B/S 前端支持将会话导出为 Markdown 或浏览器图片下载。
+- **个人设置**：模型连接、修改密码、外观与输入、回答来源切换，以及清除本地缓存（本地存储 + 图片预览临时文件）。
 - **Docker 部署**：前端、后端和 pgvector 数据库可通过 Docker Compose 一键启动。
 
 ## 系统架构
 
 ```mermaid
 flowchart LR
-    U[浏览器] --> F[前端与 API 代理<br/>:4173]
+    U[浏览器 / 小程序 / App] --> F[前端<br/>原生 Web :4173<br/>uni-app H5 :5178]
     F -->|/api| B[FastAPI 后端<br/>:8000]
+    U -.->|小程序 / App 直连局域网| B
     B --> A[LangGraph Agent]
     A --> M[DeepSeek 对话模型]
     A --> T[Agent Tools]
@@ -62,7 +67,8 @@ flowchart LR
 | 后端 | Python 3.11-3.13、FastAPI、Uvicorn |
 | 数据层 | PostgreSQL 16、pgvector、SQLAlchemy、psycopg 3 |
 | 文档解析 | PyMuPDF、python-docx、python-pptx |
-| 前端 | HTML、CSS、原生 JavaScript、Marked、DOMPurify |
+| 前端（Web） | HTML、CSS、原生 JavaScript、Marked、DOMPurify |
+| 前端（多端） | uni-app、Vue 3、TypeScript、Pinia、Vite |
 | 认证 | JWT、bcrypt |
 | 部署 | Docker、Docker Compose |
 | 测试 | pytest、FastAPI TestClient |
@@ -82,10 +88,12 @@ AI-bot/
 │   ├── db_init.py          # 幂等数据库初始化
 │   ├── embeddings.py       # 共享 Embedding 客户端
 │   └── models.py           # SQLAlchemy 数据模型
+├── uniapp-frontend/
+│   └── ai-bot-uniapp/      # uni-app 多端前端（H5 / 微信小程序 / App）
 ├── web/
 │   ├── assets/             # 头像与前端依赖
 │   ├── dev_server.py       # 静态页面服务与同源 API 代理
-│   └── index.html          # 网页端应用
+│   └── index.html          # 原生网页端应用
 ├── tests/                  # 认证、会话、记忆与 RAG 测试
 ├── Dockerfile              # 后端镜像
 ├── web/Dockerfile          # 前端镜像
@@ -153,7 +161,8 @@ docker compose up -d --build
 
 | 服务 | 地址 |
 | --- | --- |
-| 网页端 | <http://127.0.0.1:4173> |
+| 网页端（原生） | <http://127.0.0.1:4173> |
+| uni-app H5（开发） | <http://127.0.0.1:5178> |
 | Swagger API 文档 | <http://127.0.0.1:8000/docs> |
 | 后端健康检查 | <http://127.0.0.1:8000/health> |
 | PostgreSQL | `127.0.0.1:5432` |
@@ -172,11 +181,15 @@ docker compose ps
 | --- | --- | --- |
 | `DEEPSEEK_API_KEY` | 是 | 对话模型密钥 |
 | `DEEPSEEK_BASE_URL` | 否 | `https://api.deepseek.com` |
+| `DEEPSEEK_MODEL` | 否 | 对话模型名，默认 `deepseek-flash` |
 | `DASHSCOPE_API_KEY` | 是 | Qwen Embedding 密钥 |
 | `DASHSCOPE_BASE_URL` | 否 | DashScope OpenAI-compatible 地址 |
 | `ZHIPUAI_API_KEY` | 否 | 联网搜索密钥；不配置时网页搜索工具不可用 |
 | `JWT_SECRET_KEY` | 是 | JWT 签名密钥，建议至少 32 个字符 |
 | `MAX_UPLOAD_BYTES` | 否 | 单文件上传上限，默认 `5MB` |
+| `MODEL_SETTINGS_ENCRYPTION_KEY` | 否 | 加密个人模型 API Key；未配置时只能使用服务器默认模型 |
+| `MAX_IMAGES_PER_REQUEST` | 否 | 每轮图片上限，默认 `5` |
+| `MAX_IMAGES_PER_THREAD` | 否 | 单会话图片上限，默认 `20` |
 | `LANGSMITH_TRACING` | 否 | 设为 `true` 后启用 LangSmith tracing，默认关闭 |
 | `LANGSMITH_API_KEY` | 启用 tracing 时是 | LangSmith API Key，不要提交到仓库 |
 | `LANGSMITH_PROJECT` | 否 | Trace 所属项目，默认建议使用 `ai-bot` |
@@ -257,6 +270,9 @@ Authorization: Bearer <access_token>
 | `POST` | `/chat` | 普通聊天 |
 | `POST` | `/chat/stream` | SSE 流式聊天 |
 | `POST` | `/chat/resume` | 提交人工审批决定并恢复 Agent |
+| `POST` | `/chat/turns/{turn_id}/pause` | 暂停流式生成 |
+| `POST` | `/chat/turns/{turn_id}/resume` | 继续流式生成 |
+| `POST` | `/chat/turns/{turn_id}/cancel` | 停止流式生成 |
 | `GET` | `/conversations` | 会话列表 |
 | `GET` | `/conversations/{thread_id}` | 会话详情与待审批状态 |
 | `PATCH` | `/conversations/{thread_id}` | 修改会话标题 |
@@ -264,6 +280,11 @@ Authorization: Bearer <access_token>
 | `POST` | `/documents` | 上传并向量化文档 |
 | `GET` | `/documents` | 获取当前用户可见文档 |
 | `DELETE` | `/documents/{doc_id}` | 删除有权限操作的文档 |
+| `GET/POST` | `/personas` | 角色列表与创建 |
+| `PATCH/DELETE` | `/personas/{id}` | 修改或删除自建角色 |
+| `GET/PATCH` | `/users/me/default-persona` | 读取或设置默认角色 |
+| `GET/PUT/DELETE` | `/settings/model` | 个人模型连接配置 |
+| `POST` | `/settings/model/test` | 测试个人模型连接 |
 
 完整请求结构和在线调试入口见 Swagger：<http://127.0.0.1:8000/docs>。
 
@@ -295,6 +316,24 @@ python -m uvicorn app.api:app --host 127.0.0.1 --port 8000 --reload
 
 ```powershell
 python -m uvicorn web.dev_server:app --host 127.0.0.1 --port 4173 --reload
+```
+
+uni-app 前端（H5 / 微信小程序 / App）：
+
+```powershell
+cd uniapp-frontend/ai-bot-uniapp
+pnpm install
+pnpm dev:h5         # H5，默认 127.0.0.1:5178，/api 代理到 8000
+pnpm dev:mp-weixin  # 微信小程序，产物导入微信开发者工具
+pnpm dev:app        # App，产物导入 HBuilderX
+```
+
+小程序 / App 不经过 Vite 代理，需要把 `uniapp-frontend/ai-bot-uniapp/.env`
+里的 `VITE_API_BASE_URL` 改成电脑的局域网地址（例如
+`http://192.168.1.10:8000`），并让 uvicorn 监听 `0.0.0.0`：
+
+```powershell
+python -m uvicorn app.api:app --host 0.0.0.0 --port 8000 --reload
 ```
 
 ## 测试
@@ -333,10 +372,12 @@ docker compose down -v
 1. 注册用户并进行一轮普通对话，展示流式 Markdown 回复。
 2. 明确要求 Agent 记住一条信息，展示人在回路审批弹窗。
 3. 新建会话后再次提问，展示长期记忆跨会话生效。
-4. 上传一份 PDF 或课件并提问，展示 RAG 检索和页码引用。
-5. 打开历史会话，修改标题并继续对话。
-6. 切换到另一个账号，展示会话、记忆和私有文档隔离。
-7. 打开 Swagger，说明接口、SSE、数据库表和 Docker 服务结构。
+4. 发送一张图片并提问，展示图片压缩、上传和带图回答。
+5. 在个人设置切换「Mock 离线模拟」，展示离线流式回答和「离线演示回答」标签，再切回真实模型。
+6. 上传一份 PDF 或课件并提问，展示 RAG 检索和页码引用。
+7. 打开历史会话，修改标题并继续对话。
+8. 切换到另一个账号，展示会话、记忆和私有文档隔离。
+9. 打开 Swagger，说明接口、SSE、数据库表和 Docker 服务结构。
 
 答辩现场需要网络访问模型与 Embedding API；建议提前构建镜像、确认三个容器均为
 `healthy`，并准备手机热点作为备用网络。
@@ -350,6 +391,18 @@ docker compose down -v
 ```powershell
 docker compose logs --tail 100 backend
 ```
+
+### 小程序 / App 提示「网络异常」
+
+- uvicorn 必须监听 `0.0.0.0`，而不是默认的 `127.0.0.1`；
+- `uniapp-frontend/ai-bot-uniapp/.env` 的 `VITE_API_BASE_URL` 必须是电脑的局域网 IP，不能写 `127.0.0.1`；
+- 微信开发者工具需要勾选「不校验合法域名」，真机调试要求手机和电脑在同一网络。
+
+### 图片发送失败
+
+- 每轮最多 `MAX_IMAGES_PER_REQUEST`（默认 5）张，单会话最多 `MAX_IMAGES_PER_THREAD`（默认 20）张；
+- 前端会先把图片压缩到长边 1280、JPEG 质量 0.8；原图过大时仍可能触发网络超时，可以继续调低压缩参数；
+- 模型服务出错时，uni-app 前端会自动使用本地 Mock 回答，并显示「离线演示回答」标签。
 
 ### 修改 `JWT_SECRET_KEY` 后需要重新登录
 

@@ -42,4 +42,32 @@
 19、缺少评测与演示资产：只有 pytest 单测，没有「问题→期望结果」的 eval 集，也没有可访问的部署与演示录像，导致「改完好在哪」讲不出数字。
     方案：20 条 eval 集 + 一次真实部署 + README 写清技术取舍。
 
+20、带图片的请求一律报「模型调用失败」：api.py 在配额检查里用了 settings，但文件顶部没有导入，触发 NameError 后被通用异常兜底吞掉。
+    修复：补 from app.config import settings；同时把 /chat 的配额检查移到 agent/config 建立之后。
+
+21、「重新生成」报 500：流式接口调用 _prepare_regeneration，但函数在工作区版本里被删掉了。
+    修复：从历史提交恢复实现，并保留「带长期记忆写入的回合不允许重新生成」的保护。
+
+22、App 端图片处理失败：image-compress.ts 统一调用了 uni.getFileSystemManager，这组 API 只在微信小程序存在。
+    修复：APP-PLUS 分支改用 plus.io.FileReader.readAsDataURL 读本地文件。
+
+23、App / 小程序点图片不能放大：uni.previewImage 在 App 原生预览器中不认 base64 data URL，小程序对 base64 也不可靠。
+    修复：预览前把 data URL 落盘——App 写 _doc/ai-bot-preview-N.jpg，小程序写 USER_DATA_PATH；H5 直接预览。
+
+24、小程序 / App 纯文本也提示网络异常：uvicorn 默认只监听 127.0.0.1，而前端请求的是局域网 IP。
+    修复：启动命令加 --host 0.0.0.0；并在 README 里写明 VITE_API_BASE_URL 必须是局域网 IP。
+
+25、Web 网页端没有图片入口：web/index.html 的 composer 只有文本发送。
+    修复：补附件按钮、canvas 压缩、待发送缩略图、消息图片渲染和遮罩预览。
+
+26、模型断线时没有演示兜底：课设演示现场网络不稳定会直接暴露错误。
+    修复：前端新增 55 条主题回答 + 12 条通用回答 + 4 条图片回答，按关键词匹配、按会话轮换，
+    逐段模拟流式播放，并在气泡下标注「离线演示回答」；个人设置可手动切换真实模型 / Mock。
+
+27、图片持久化位置：图片以 base64 存在 LangGraph checkpoint（PostgreSQL），体积约为原图 1.33 倍，
+    且每次状态快照都会携带。当前适合课设规模；会话量增大后应改为文件/对象存储，只在消息里保存 URL。
+
+28、清除缓存的边界：只清本地存储（token、用户名、外观、回答来源）和预览临时文件，并退出登录；
+    服务端 checkpoint、会话标题和长期记忆不属于缓存，不做删除。
+
 
