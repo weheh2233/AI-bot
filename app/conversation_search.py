@@ -2,6 +2,7 @@ import re
 import unicodedata
 
 from sqlalchemy import delete, select
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
 from app.models import ConversationSearchTerm
@@ -42,12 +43,21 @@ def sync_title_terms(db: Session, conversation) -> bool:
             ConversationSearchTerm.thread_id == conversation.thread_id
         )
     )
-    db.add_all(
-        ConversationSearchTerm(
-            thread_id=conversation.thread_id,
-            owner_id=conversation.owner_id,
-            term=term,
-        )
+    rows = [
+        {
+            "thread_id": conversation.thread_id,
+            "owner_id": conversation.owner_id,
+            "term": term,
+        }
         for term in terms
-    )
+    ]
+    if rows:
+        # 并发下两个请求可能同时同步同一会话（例如同时在发消息和改标题）：
+        # 前一个请求提交后，后一个请求的 DELETE 可能看不到这些行，再插入就会撞
+        # uq_conversation_search_term。用 ON CONFLICT DO NOTHING 让同步幂等。
+        db.execute(
+            pg_insert(ConversationSearchTerm)
+            .values(rows)
+            .on_conflict_do_nothing(constraint="uq_conversation_search_term")
+        )
     return True
