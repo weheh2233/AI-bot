@@ -28,7 +28,7 @@ def _parse_size(value: str) -> int:
 class Settings:
     deepseek_api_key: str = os.getenv("DEEPSEEK_API_KEY", "")
     deepseek_base_url: str = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
-    deepseek_model: str = os.getenv("DEEPSEEK_MODEL", "deepseek-v4-flash")
+    deepseek_model: str = os.getenv("DEEPSEEK_MODEL", "deepseek-flash")
     # 只在服务器保存，用于加密数据库里的个人 API Key；不要和 JWT 密钥混用。
     model_settings_encryption_key: str = os.getenv("MODEL_SETTINGS_ENCRYPTION_KEY", "")
     embedding_model_api_key:str=os.getenv("DASHSCOPE_API_KEY")
@@ -36,6 +36,8 @@ class Settings:
     zhipuai_api_key: str = os.getenv("ZHIPUAI_API_KEY", "")
     database_url :str= os.getenv("DATABASE_URL")
     max_upload_bytes: int = _parse_size(os.getenv("MAX_UPLOAD_BYTES", "5MB"))
+    max_images_per_request: int = int(os.getenv("MAX_IMAGES_PER_REQUEST", "5"))
+    max_images_per_thread: int = int(os.getenv("MAX_IMAGES_PER_THREAD", "20"))
 settings = Settings()
 
 

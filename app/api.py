@@ -1,4 +1,5 @@
 import json
+import logging
 import time
 import unicodedata
 import asyncio
@@ -12,7 +13,7 @@ from fastapi.responses import JSONResponse, RedirectResponse, StreamingResponse
 from fastapi.exceptions import RequestValidationError
 from langchain_core.messages import AIMessage, HumanMessage, RemoveMessage, ToolMessage
 from langgraph.types import Command
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, field_validator, Field
 from sqlalchemy import func, select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -25,6 +26,7 @@ from app.chat_streams import (
     ChatRun,
     ChatStreamRegistry,
 )
+from app.config import settings
 from app.conversation_search import sync_title_terms, title_terms
 from app.database import get_db
 from app.memory.long_term import store_context
@@ -34,6 +36,8 @@ from app.routers import auth, documents, settings as settings_router
 from app.model_settings import (
     agent_for_connection, load_connection, mark_used, model_error_message,
 )
+
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -64,10 +68,22 @@ async def safe_validation_error(request: Request, exc: RequestValidationError):
 
 class ChatRequest(BaseModel):
     message: str
+    images: list[str] = []  # base64 data URLs
     thread_id: str
     persona_id: int | None = None
     turn_id: str | None = None
     regenerate: bool = False
+
+    @field_validator('images')
+    @classmethod
+    def validate_images(cls, v):
+        from app.config import settings
+        if len(v) > settings.max_images_per_request:
+            raise ValueError(f'最多上传 {settings.max_images_per_request} 张图片')
+        for img in v:
+            if not img.startswith('data:image/'):
+                raise ValueError('图片格式错误，需要 data URL')
+        return v
 
 
 class ResumeRequest(BaseModel):
@@ -78,6 +94,7 @@ class ResumeRequest(BaseModel):
 class ConversationMessage(BaseModel):
     role: Literal["user", "assistant"]
     content: str
+    images: list[str] | None = None
     timestamp: datetime | None = None
     elapsed: float | None = None
 
@@ -354,6 +371,29 @@ def _content_text(content) -> str:
     return "".join(parts).strip()
 
 
+
+
+def _extract_images(content) -> list[str]:
+    """从内容块中提取图片 data URLs。"""
+    if not isinstance(content, list):
+        return []
+    
+    images = []
+    for block in content:
+        if isinstance(block, dict) and block.get("type") == "image_url":
+            url = block.get("image_url", {}).get("url")
+            if url:
+                images.append(url)
+    return images
+
+
+def _count_images_in_state(state) -> int:
+    """统计当前 checkpoint 中用户消息的图片总数。"""
+    count = 0
+    for msg in state.values.get("messages", []):
+        if isinstance(msg, HumanMessage):
+            count += len(_extract_images(msg.content))
+    return count
 def _conversation_messages(
     snapshot, timestamp: datetime | None = None
 ) -> list[ConversationMessage]:
@@ -379,13 +419,15 @@ def _conversation_messages_from_list(
             continue
 
         content = _content_text(message.content)
-        if content:
+        images = _extract_images(message.content) if role == "user" else None
+        if content or images:
             stored_timestamp = message.additional_kwargs.get("timestamp", timestamp)
             stored_elapsed = message.additional_kwargs.get("elapsed")
             messages.append(
                 ConversationMessage(
                     role=role,
-                    content=content,
+                    content=content or "[图片]",
+                    images=images,
                     timestamp=stored_timestamp,
                     elapsed=stored_elapsed if role == "assistant" else None,
                 )
@@ -474,15 +516,26 @@ def _conversation_messages_from_history(
     return _conversation_messages_from_list(merged_messages, timestamp=timestamp)
 
 
-def _timed_user_message(content: str) -> HumanMessage:
+def _timed_user_message(content: str, images: list[str] | None = None) -> HumanMessage:
+    """构建带时间戳的用户消息，支持文本 + 图片。"""
+    if not images:
+        message_content = content
+    else:
+        # 构建内容块数组：文本在前，图片在后
+        message_content = [{"type": "text", "text": content}]
+        for img_url in images:
+            message_content.append({
+                "type": "image_url",
+                "image_url": {"url": img_url}
+            })
+    
     return HumanMessage(
-        content=content,
+        content=message_content,
         additional_kwargs={"timestamp": datetime.now(timezone.utc).isoformat()},
     )
 
-
 async def _store_assistant_timing(agent, config: dict, elapsed: float) -> None:
-    """Replace the latest assistant message with timing metadata in the checkpoint."""
+    """把本轮耗时和时间戳写回最后一条助手消息的 checkpoint。"""
     snapshot = await agent.aget_state(config)
     for message in reversed(snapshot.values.get("messages", [])):
         if not isinstance(message, AIMessage) or not _content_text(message.content):
@@ -500,7 +553,7 @@ async def _store_assistant_timing(agent, config: dict, elapsed: float) -> None:
 
 
 async def _prepare_regeneration(agent, config: dict) -> str:
-    """Remove the most recent user turn from the checkpoint and return its text."""
+    """从 checkpoint 中删除最近一轮用户消息及其回复，并返回原文用于重新生成。"""
     snapshot = await agent.aget_state(config)
     messages = list(snapshot.values.get("messages", []))
     user_index = next(
@@ -536,7 +589,7 @@ async def _prepare_regeneration(agent, config: dict) -> str:
     original_text = _content_text(messages[user_index].content)
     await agent.aupdate_state(
         config,
-        {"messages": [RemoveMessage(id=message.id) for message in turn_messages]},#直接让langgraph删近这几条消息
+        {"messages": [RemoveMessage(id=message.id) for message in turn_messages]},
     )
     return original_text
 
@@ -648,6 +701,7 @@ def create_persona(
 
 
 @app.patch("/personas/{persona_id}", response_model=PersonaOut)
+@app.put("/personas/{persona_id}", response_model=PersonaOut, include_in_schema=False)
 def update_persona(
     persona_id: int,
     payload: PersonaUpdate,
@@ -685,6 +739,11 @@ def delete_persona(
 
 
 @app.patch("/users/me/default-persona", response_model=PersonaOut | None)
+@app.put(
+    "/users/me/default-persona",
+    response_model=PersonaOut | None,
+    include_in_schema=False,
+)
 def update_default_persona(
     payload: DefaultPersonaUpdate,
     current: User = Depends(get_current_user),
@@ -758,6 +817,11 @@ def get_conversation_persona(
 
 
 @app.patch("/conversations/{thread_id}/persona", response_model=PersonaOut)
+@app.put(
+    "/conversations/{thread_id}/persona",
+    response_model=PersonaOut,
+    include_in_schema=False,
+)
 def update_conversation_persona(
     thread_id: str,
     payload: ConversationPersonaUpdate,
@@ -933,6 +997,11 @@ def get_conversation(
 
 
 @app.patch("/conversations/{thread_id}", response_model=ConversationTitle)
+@app.put(
+    "/conversations/{thread_id}",
+    response_model=ConversationTitle,
+    include_in_schema=False,
+)
 def update_conversation_title(
     thread_id: str,
     payload: ConversationTitleUpdate,
@@ -984,6 +1053,7 @@ def update_conversation_title(
 
 
 @app.patch("/conversations/{thread_id}/metadata")
+@app.put("/conversations/{thread_id}/metadata", include_in_schema=False)
 def update_conversation_metadata(
     thread_id: str,
     payload: ConversationMetadataUpdate,
@@ -1072,7 +1142,7 @@ async def chat(
     current: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    payload = {"messages": [_timed_user_message(req.message)]}
+    payload = {"messages": [_timed_user_message(req.message, req.images)]}
     config = _config(current, req.thread_id, run_name="ai-bot-chat", tags=["chat"])
     connection = await asyncio.to_thread(load_connection, current.id)
     context = await asyncio.to_thread(
@@ -1083,6 +1153,16 @@ async def chat(
     )
     try:
         async with agent_for_connection(request.app, connection) as agent:
+            # 配额依赖本轮 agent 的 checkpoint，必须在 agent 建立之后才能查。
+            if req.images:
+                snapshot = await agent.aget_state(config)
+                current_count = _count_images_in_state(snapshot)
+                if current_count + len(req.images) > settings.max_images_per_thread:
+                    raise HTTPException(
+                        422,
+                        f"本会话最多 {settings.max_images_per_thread} 张图片，"
+                        f"当前已有 {current_count} 张，请新建会话",
+                    )
             start_time = time.perf_counter()
             result = await agent.ainvoke(payload, config, context=context)
             await asyncio.to_thread(mark_used, current.id, connection)
@@ -1174,10 +1254,20 @@ def chat_stream(
     async def produce(agent):
         started_at = time.perf_counter()
         try:
+            # 检查配额（重新生成时不检查，因为不带新图）
+            if not req.regenerate and req.images:
+                snapshot = await agent.aget_state(config)
+                current_count = _count_images_in_state(snapshot)
+                if current_count + len(req.images) > settings.max_images_per_thread:
+                    raise HTTPException(
+                        422,
+                        f"本会话最多 {settings.max_images_per_thread} 张图片，当前已有 {current_count} 张"
+                    )
+
             message = req.message
             if req.regenerate:
                 message = await _prepare_regeneration(agent, config)
-            payload = {"messages": [_timed_user_message(message)]}
+            payload = {"messages": [_timed_user_message(message, req.images if not req.regenerate else None)]}
             # 生产协程只负责跑模型并把片段放入有界队列；暂停/发送由下面的 SSE 协程处理。
             async for chunk, meta in agent.astream(
                 payload, config, context=context, stream_mode="messages"
@@ -1226,6 +1316,7 @@ def chat_stream(
             await run.queue.put({"type": "error", "detail": exc.detail})
             await run.queue.put(None)
         except Exception as exc:
+            logger.exception("聊天生成失败：%s", exc)
             await run.queue.put({"type": "error", "detail": model_error_message(exc)})
             await run.queue.put(None)
 
