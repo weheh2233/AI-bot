@@ -26,4 +26,20 @@
 前端把上次会话 ID 持久化到了 localStorage：
  启动时读取 ai_bot_thread页面关闭前和启动时再次保存所以重开页面后仍然复用旧 thread_id。但消息区域没有重新请求该会话详情，于是出现“标题像旧会话，内容却是空的新页面”的错觉
 
+15、语义去重阈值形同虚设：memory_tools.py 的 DEDUP_THRESHOLD=0.92，但同文件注释实测「同事实不同说法 0.81~0.87」，
+    阈值卡在 0.92 之上，导致第 2 步（query=value 的语义近似合并）几乎永远不触发，实际只有精确 key 命中在起作用。
+    方案二选一：降到 0.85 并配合 superseded 留痕；或直接删掉该分支，别留一段看着聪明、实则不工作的代码。
+
+16、transient 记忆没有生命周期：importance 只是标签，写进去就永久存在，三天前那句「我今天有点累」还可能被检索注入。
+    方案：value 带 created_at/expires_at，检索时按时间过滤或衰减；transient 给默认 TTL。
+
+17、get_user_memories 命中回写成本过高：每条命中都 store.put 刷新 updated_at，10 条命中 = 10 次写 + 10 次重新 embedding，内容一个字没变。
+    方案：LRU 时间戳与内容分离，用单独字段或一条批量 UPDATE，回写不走 embedding 流程。
+
+18、api.py 单文件 1355 行、22 个路由 + 大量私有 helper，聊天/人格/会话逻辑全堆在一起，routers/ 只拆了 auth、documents、settings。
+    方案：按 chat / conversations / personas 拆 router，业务逻辑下沉 service 层。
+
+19、缺少评测与演示资产：只有 pytest 单测，没有「问题→期望结果」的 eval 集，也没有可访问的部署与演示录像，导致「改完好在哪」讲不出数字。
+    方案：20 条 eval 集 + 一次真实部署 + README 写清技术取舍。
+
 

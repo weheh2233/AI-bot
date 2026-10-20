@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "0a5180c8-b179-4ee4-8c4f-fdd874dc343b",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "D:\\Pycharm\\Pycharm_Projects\\AI-bot\\.archify\\architecture-ai-bot-20261019-154500\\candidate.json",
+  "output": "D:\\Pycharm\\Pycharm_Projects\\AI-bot\\.archify\\architecture-ai-bot-20261019-154500\\ai-bot-architecture.html",
+  "specification": {
+    "sha256": "df1e6a3a8534b9a50616fb5b34c133fa7ddcf4c5ff6cde3e6b5a58d53bed48e8",
+    "bytes": 6996
+  },
+  "artifact": {
+    "sha256": "6f59359844c4914f2febfe3d67bfbfef8646625bfa2a4adabb7398f95c01a212",
+    "bytes": 842631
+  }
+}

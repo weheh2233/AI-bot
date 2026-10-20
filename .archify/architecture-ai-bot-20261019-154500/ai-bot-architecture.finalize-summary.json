@@ -1,0 +1,270 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "architecture",
+  "quality": "showcase",
+  "specification": {
+    "path": "D:\\Pycharm\\Pycharm_Projects\\AI-bot\\.archify\\architecture-ai-bot-20261019-154500\\candidate.json",
+    "sha256": "df1e6a3a8534b9a50616fb5b34c133fa7ddcf4c5ff6cde3e6b5a58d53bed48e8",
+    "bytes": 6996
+  },
+  "artifact": {
+    "path": "D:\\Pycharm\\Pycharm_Projects\\AI-bot\\.archify\\architecture-ai-bot-20261019-154500\\ai-bot-architecture.html",
+    "sha256": "6f59359844c4914f2febfe3d67bfbfef8646625bfa2a4adabb7398f95c01a212",
+    "bytes": 842631
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "D:\\Pycharm\\Pycharm_Projects\\AI-bot\\.archify\\architecture-ai-bot-20261019-154500\\ai-bot-architecture.finalize.json",
+    "summaryReceipt": "D:\\Pycharm\\Pycharm_Projects\\AI-bot\\.archify\\architecture-ai-bot-20261019-154500\\ai-bot-architecture.finalize-summary.json",
+    "browserCheckReceipt": "D:\\Pycharm\\Pycharm_Projects\\AI-bot\\.archify\\architecture-ai-bot-20261019-154500\\ai-bot-architecture.browser-check.json"
+  },
+  "update": {
+    "status": "current",
+    "installedVersion": "3.2.0",
+    "availableVersion": "3.2.0",
+    "releaseNotes": null,
+    "checkedAt": "2026-10-19T05:21:38.426Z",
+    "source": "cache",
+    "noticeRequired": false,
+    "noticeText": null
+  },
+  "visualReview": "not-requested",
+  "durationMs": 6603,
+  "browserCheck": {
+    "requested": true,
+    "ran": true
+  },
+  "visualReviewRecommendation": {
+    "action": "inspect-route-readability",
+    "signals": {
+      "resolvedCrossovers": 7,
+      "routesOverSuggestedBends": 3,
+      "routesOverSuggestedStretch": 1
+    },
+    "reason": "Automated gates passed, but crossings or detours still need perceptual review before claiming visual quality.",
+    "affectedRoutes": {
+      "crossings": [
+        {
+          "left": {
+            "id": "agent-memory",
+            "from": "agent",
+            "to": "memory",
+            "label": "注入 / 保存长期记忆",
+            "collectionIndex": 7,
+            "artifactIndex": 8
+          },
+          "right": {
+            "id": "tools-knowledge",
+            "from": "tools",
+            "to": "knowledge",
+            "label": "search_knowledge_base",
+            "collectionIndex": 8,
+            "artifactIndex": 9
+          },
+          "point": [
+            1154,
+            396
+          ]
+        },
+        {
+          "left": {
+            "id": "agent-memory",
+            "from": "agent",
+            "to": "memory",
+            "label": "注入 / 保存长期记忆",
+            "collectionIndex": 7,
+            "artifactIndex": 8
+          },
+          "right": {
+            "id": "tools-memory",
+            "from": "tools",
+            "to": "memory",
+            "label": "memory tools",
+            "collectionIndex": 9,
+            "artifactIndex": 10
+          },
+          "point": [
+            1035,
+            396
+          ],
+          "sharedNode": "memory"
+        },
+        {
+          "left": {
+            "id": "agent-memory",
+            "from": "agent",
+            "to": "memory",
+            "label": "注入 / 保存长期记忆",
+            "collectionIndex": 7,
+            "artifactIndex": 8
+          },
+          "right": {
+            "id": "api-postgres",
+            "from": "api",
+            "to": "postgres",
+            "label": "用户 / 会话业务数据",
+            "collectionIndex": 10,
+            "artifactIndex": 11
+          },
+          "point": [
+            790,
+            337
+          ]
+        },
+        {
+          "left": {
+            "id": "tools-knowledge",
+            "from": "tools",
+            "to": "knowledge",
+            "label": "search_knowledge_base",
+            "collectionIndex": 8,
+            "artifactIndex": 9
+          },
+          "right": {
+            "id": "tools-memory",
+            "from": "tools",
+            "to": "memory",
+            "label": "memory tools",
+            "collectionIndex": 9,
+            "artifactIndex": 10
+          },
+          "point": [
+            1035,
+            417
+          ],
+          "sharedNode": "tools"
+        },
+        {
+          "left": {
+            "id": "tools-knowledge",
+            "from": "tools",
+            "to": "knowledge",
+            "label": "search_knowledge_base",
+            "collectionIndex": 8,
+            "artifactIndex": 9
+          },
+          "right": {
+            "id": "api-postgres",
+            "from": "api",
+            "to": "postgres",
+            "label": "用户 / 会话业务数据",
+            "collectionIndex": 10,
+            "artifactIndex": 11
+          },
+          "point": [
+            1154,
+            337
+          ]
+        },
+        {
+          "left": {
+            "id": "tools-knowledge",
+            "from": "tools",
+            "to": "knowledge",
+            "label": "search_knowledge_base",
+            "collectionIndex": 8,
+            "artifactIndex": 9
+          },
+          "right": {
+            "id": "rag-embedding",
+            "from": "rag",
+            "to": "embedding",
+            "label": "批量 embedding",
+            "collectionIndex": 12,
+            "artifactIndex": 13
+          },
+          "point": [
+            1003.6000000000005,
+            499
+          ]
+        },
+        {
+          "left": {
+            "id": "tools-memory",
+            "from": "tools",
+            "to": "memory",
+            "label": "memory tools",
+            "collectionIndex": 9,
+            "artifactIndex": 10
+          },
+          "right": {
+            "id": "api-postgres",
+            "from": "api",
+            "to": "postgres",
+            "label": "用户 / 会话业务数据",
+            "collectionIndex": 10,
+            "artifactIndex": 11
+          },
+          "point": [
+            1035,
+            337
+          ]
+        }
+      ],
+      "detours": [
+        {
+          "relationship": {
+            "id": "api-agent",
+            "from": "api",
+            "to": "agent",
+            "label": "/chat · SSE stream",
+            "collectionIndex": 3,
+            "artifactIndex": 4
+          },
+          "bends": 3,
+          "stretch": 1.306
+        },
+        {
+          "relationship": {
+            "id": "tools-knowledge",
+            "from": "tools",
+            "to": "knowledge",
+            "label": "search_knowledge_base",
+            "collectionIndex": 8,
+            "artifactIndex": 9
+          },
+          "bends": 4,
+          "stretch": 1.695
+        },
+        {
+          "relationship": {
+            "id": "api-postgres",
+            "from": "api",
+            "to": "postgres",
+            "label": "用户 / 会话业务数据",
+            "collectionIndex": 10,
+            "artifactIndex": 11
+          },
+          "bends": 4,
+          "stretch": 1.099
+        }
+      ],
+      "truncated": false
+    },
+    "hints": [
+      "agent has 4 relationships facing its right side, which fits 3 ports: make that side at least 74px, or move some of those neighbours so they face another side of agent.",
+      "agent → memory crosses tools → knowledge: move the node of whichever is a branch, return, or second entrance to the other side of the main path, so that relationship runs through an empty corridor.",
+      "agent → memory and tools → memory cross next to memory: move node agent or tools so the two reach memory from different sides (for example one level with it, one directly above or below it).",
+      "agent → memory crosses api → postgres: move the node of whichever is a branch, return, or second entrance to the other side of the main path, so that relationship runs through an empty corridor.",
+      "tools → knowledge and tools → memory cross next to tools: move node knowledge or memory so the two reach tools from different sides (for example one level with it, one directly above or below it).",
+      "tools → knowledge crosses api → postgres: move the node of whichever is a branch, return, or second entrance to the other side of the main path, so that relationship runs through an empty corridor.",
+      "tools → knowledge crosses rag → embedding: move the node of whichever is a branch, return, or second entrance to the other side of the main path, so that relationship runs through an empty corridor.",
+      "tools → memory crosses api → postgres: move the node of whichever is a branch, return, or second entrance to the other side of the main path, so that relationship runs through an empty corridor."
+    ],
+    "repair": "Trace these relationships at the desktop viewport. For Architecture, use references/architecture-layout-repair.md: reflow a blocked main path or tangled connected scene, and repair an isolated defect locally only when the surrounding composition is accepted. Preserve all semantic content and user-fixed geometry. Rerun finalize once after the edit."
+  }
+}

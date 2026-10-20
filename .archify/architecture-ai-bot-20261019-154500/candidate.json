@@ -1,0 +1,177 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "AI-bot 学习知识助手架构",
+    "subtitle": "FastAPI + LangGraph + PostgreSQL/pgvector",
+    "locale": "zh-CN",
+    "output": "ai-bot-architecture.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/weheh2233/AI-bot.git",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "f50f53bc620fa881599cf2c3ea09645cde6a7fc8"
+    }
+  },
+  "components": [
+    {
+      "id": "browser",
+      "type": "external",
+      "label": "浏览器",
+      "sublabel": "学习对话 / 资料管理",
+      "pos": [40, 270],
+      "size": [150, 64],
+      "sources": [{ "path": "README.md", "line": 31, "end_line": 44 }]
+    },
+    {
+      "id": "web",
+      "type": "frontend",
+      "label": "Web 前端与代理",
+      "sublabel": "FastAPI :4173 → /api",
+      "pos": [250, 270],
+      "size": [170, 64],
+      "sources": [{ "path": "web/dev_server.py", "line": 6, "end_line": 43 }]
+    },
+    {
+      "id": "api",
+      "type": "backend",
+      "label": "FastAPI 后端",
+      "sublabel": "app.api :8000",
+      "pos": [480, 270],
+      "size": [160, 64],
+      "sources": [{ "path": "app/api.py", "line": 39, "end_line": 54 }]
+    },
+    {
+      "id": "auth",
+      "type": "security",
+      "label": "JWT 鉴权",
+      "sublabel": "Authorization Bearer",
+      "pos": [480, 120],
+      "size": [160, 64],
+      "sources": [{ "path": "app/auth.py", "line": 54, "end_line": 70 }]
+    },
+    {
+      "id": "agent",
+      "type": "backend",
+      "label": "LangGraph Agent",
+      "sublabel": "create_agent + middleware",
+      "pos": [700, 270],
+      "size": [180, 64],
+      "sources": [{ "path": "app/agent/bot.py", "line": 143, "end_line": 177 }]
+    },
+    {
+      "id": "model",
+      "type": "cloud",
+      "label": "对话模型",
+      "sublabel": "DeepSeek / OpenAI-compatible",
+      "pos": [940, 120],
+      "size": [190, 64],
+      "sources": [{ "path": "app/agent/bot.py", "line": 27, "end_line": 34 }]
+    },
+    {
+      "id": "tools",
+      "type": "backend",
+      "label": "Agent Tools",
+      "sublabel": "知识库 / 网页 / 记忆",
+      "pos": [940, 270],
+      "size": [190, 64],
+      "sources": [{ "path": "app/agent/bot.py", "line": 147, "end_line": 150 }]
+    },
+    {
+      "id": "rag",
+      "type": "backend",
+      "label": "RAG 文档流水线",
+      "sublabel": "解析 → 切分 → embedding → 入库",
+      "pos": [700, 470],
+      "size": [210, 72],
+      "sources": [{ "path": "app/rag/ingest.py", "line": 19, "end_line": 67 }]
+    },
+    {
+      "id": "embedding",
+      "type": "cloud",
+      "label": "Embedding 服务",
+      "sublabel": "Qwen text-embedding-flash",
+      "pos": [1010, 470],
+      "size": [190, 64],
+      "sources": [{ "path": "app/embeddings.py", "line": 19, "end_line": 28 }]
+    },
+    {
+      "id": "postgres",
+      "type": "database",
+      "label": "PostgreSQL + pgvector",
+      "sublabel": "业务表与向量存储",
+      "pos": [1200, 270],
+      "size": [210, 72],
+      "sources": [{ "path": "app/database.py", "line": 9, "end_line": 26 }]
+    },
+    {
+      "id": "checkpoint",
+      "type": "database",
+      "label": "会话 Checkpoint",
+      "sublabel": "PostgresSaver / AsyncPostgresSaver",
+      "pos": [1200, 120],
+      "size": [210, 64],
+      "sources": [{ "path": "app/memory/short_term.py", "line": 12, "end_line": 46 }]
+    },
+    {
+      "id": "memory",
+      "type": "database",
+      "label": "长期记忆",
+      "sublabel": "PostgresStore + embedding index",
+      "pos": [1208, 420],
+      "size": [210, 64],
+      "sources": [{ "path": "app/memory/long_term.py", "line": 8, "end_line": 31 }]
+    },
+    {
+      "id": "knowledge",
+      "type": "database",
+      "label": "文档与向量片段",
+      "sublabel": "scope 过滤 + cosine distance",
+      "pos": [1280, 560],
+      "size": [210, 64],
+      "sources": [{ "path": "app/rag/retrieval.py", "line": 13, "end_line": 42 }]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "同一 PostgreSQL 实例（业务数据、checkpoint、长期记忆、pgvector）",
+      "wraps": ["postgres", "checkpoint", "memory", "knowledge"]
+    }
+  ],
+  "connections": [
+    { "id": "browser-web", "from": "browser", "to": "web", "label": "HTTP", "variant": "emphasis" },
+    { "id": "web-api", "from": "web", "to": "api", "label": "/api 代理", "variant": "emphasis" },
+    { "id": "auth-api", "from": "auth", "to": "api", "label": "校验 JWT", "variant": "security", "fromSide": "bottom", "toSide": "top" },
+    { "id": "api-agent", "from": "api", "to": "agent", "label": "/chat · SSE stream", "variant": "emphasis" },
+    { "id": "agent-model", "from": "agent", "to": "model", "label": "模型调用", "variant": "emphasis", "fromSide": "top", "toSide": "bottom" },
+    { "id": "agent-tools", "from": "agent", "to": "tools", "label": "工具调用" },
+    { "id": "agent-checkpoint", "from": "agent", "to": "checkpoint", "label": "保存 / 恢复状态", "fromSide": "top", "toSide": "bottom" },
+    { "id": "agent-memory", "from": "agent", "to": "memory", "label": "注入 / 保存长期记忆", "fromSide": "bottom", "toSide": "top" },
+    { "id": "tools-knowledge", "from": "tools", "to": "knowledge", "label": "search_knowledge_base", "fromSide": "right", "toSide": "left" },
+    { "id": "tools-memory", "from": "tools", "to": "memory", "label": "memory tools", "fromSide": "bottom", "toSide": "left" },
+    { "id": "api-postgres", "from": "api", "to": "postgres", "label": "用户 / 会话业务数据" },
+    { "id": "web-rag", "from": "web", "to": "rag", "label": "上传资料", "variant": "dashed", "fromSide": "bottom", "toSide": "left" },
+    { "id": "rag-embedding", "from": "rag", "to": "embedding", "label": "批量 embedding", "fromSide": "right", "toSide": "left" },
+    { "id": "rag-knowledge", "from": "rag", "to": "knowledge", "label": "提交文档与 chunks", "fromSide": "right", "toSide": "left" },
+    { "id": "embedding-knowledge", "from": "embedding", "to": "knowledge", "label": "向量查询 / 写入", "variant": "dashed", "fromSide": "bottom", "toSide": "top" }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "聊天主链路",
+      "items": ["JWT 保护聊天与资料接口", "Agent 负责模型、工具和人工审批编排", "普通与 SSE 流式聊天共用 LangGraph 状态"]
+    },
+    {
+      "dot": "emerald",
+      "title": "RAG 路径",
+      "items": ["上传文档先解析和切分，再批量生成 embedding", "检索只返回全局文档和当前用户私有文档", "文档来源和 PDF 页码定位保存在片段元数据"]
+    },
+    {
+      "dot": "rose",
+      "title": "边界说明",
+      "items": ["图展示源码中已确认的调用与存储关系", "模型与 embedding 是配置的 OpenAI-compatible 外部服务", "工作区当前有未提交的“问题清单”变更，但未作为证据"]
+    }
+  ]
+}
