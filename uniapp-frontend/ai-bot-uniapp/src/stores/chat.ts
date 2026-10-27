@@ -105,13 +105,15 @@ export const useChatStore = defineStore('chat', {
       return Array.from(seen).sort()
     },
 
-    /** 应用「全部/收藏夹」+ 标签 + 关键词过滤后的列表 */
+    /**
+     * 应用「全部/收藏夹」+ 标签过滤后的列表。
+     * 关键词过滤由后端 /conversations/search 完成（标题 + 正文），
+     * 这里不能再按标题筛一遍，否则正文命中的会话会被丢掉。
+     */
     filteredHistory: (state) => {
-      const keyword = state.historyQuery.trim().toLowerCase()
       return state.history.filter((item) => {
         if (state.historyFilter === 'favorites' && !item.is_favorite) return false
         if (state.historyTag && !(item.tags || []).includes(state.historyTag)) return false
-        if (keyword && !(item.title || '').toLowerCase().includes(keyword)) return false
         return true
       })
     },
@@ -193,7 +195,7 @@ export const useChatStore = defineStore('chat', {
       }
     },
 
-    /** 后端按标题搜索；清空关键词时回到普通列表 */
+    /** 后端按标题和正文搜索；清空关键词时回到普通列表 */
     async searchHistory(query: string, limit = 50) {
       const keyword = query.trim()
       this.historyQuery = keyword
@@ -204,7 +206,7 @@ export const useChatStore = defineStore('chat', {
       this.historyIsError = false
       try {
         this.history = await searchConversations(keyword)
-        this.historyPlaceholder = this.history.length ? '' : '没有匹配的会话标题。'
+        this.historyPlaceholder = this.history.length ? '' : '没有匹配的会话。'
       } catch (error) {
         this.history = []
         this.historyPlaceholder = error instanceof Error ? error.message : '搜索失败'

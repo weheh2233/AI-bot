@@ -10,9 +10,10 @@
             v-model="keyword"
             class="m-search-input"
             type="text"
-            placeholder="搜索会话标题"
+            placeholder="搜索会话内容或标题"
             :maxlength="120"
             confirm-type="search"
+            @input="onKeywordInput"
             @confirm="onSearch"
           />
           <view v-if="keyword" class="m-search-clear" @click="clearSearch"><text>×</text></view>
@@ -117,10 +118,11 @@
               v-model="keyword"
               class="history-search-input"
               type="text"
-              placeholder="搜索会话标题"
+              placeholder="搜索会话内容或标题"
               :maxlength="120"
               confirm-type="search"
-              @confirm="onSearch"
+              @input="onKeywordInput"
+            @confirm="onSearch"
             />
             <text class="history-search-icon">⌕</text>
           </view>
@@ -270,7 +272,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, onUnmounted, reactive, ref, watch } from 'vue'
 import type { ConversationSummary } from '@/api'
 import { useChatStore } from '@/stores/chat'
 import { useUiStore } from '@/stores/ui'
@@ -310,7 +312,7 @@ const tagIndex = computed(() => {
 
 const emptyText = computed(() => {
   if (chat.historyIsError) return chat.historyPlaceholder
-  if (chat.historyQuery) return '没有匹配的会话标题。'
+  if (chat.historyQuery) return '没有匹配的会话。'
   if (chat.historyFilter === 'favorites') return '收藏夹里还没有会话。'
   return chat.historyPlaceholder || '还没有历史会话。'
 })
@@ -320,9 +322,22 @@ function refresh() {
   else void chat.loadHistoryTitles(50)
 }
 
+let searchTimer: ReturnType<typeof setTimeout> | null = null
+
+/** 输入停顿 300ms 后自动搜索，与 web 端保持一致 */
+function onKeywordInput() {
+  if (searchTimer) clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => refresh(), 300)
+}
+
 function onSearch() {
+  if (searchTimer) clearTimeout(searchTimer)
   void chat.searchHistory(keyword.value, 50)
 }
+
+onUnmounted(() => {
+  if (searchTimer) clearTimeout(searchTimer)
+})
 
 /* ---------- 手机布局专用 ---------- */
 
@@ -339,6 +354,7 @@ async function onPullRefresh() {
 }
 
 function clearSearch() {
+  if (searchTimer) clearTimeout(searchTimer)
   keyword.value = ''
   void chat.loadHistoryTitles(50)
 }

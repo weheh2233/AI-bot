@@ -414,7 +414,7 @@ export function updateConversationMetadata(
   )
 }
 
-/** GET /conversations/search?q= —— 仅按标题搜索，后端最多返回 50 条 */
+/** GET /conversations/search?q= —— 按标题和正文搜索，后端最多返回 50 条 */
 export function searchConversations(query: string): Promise<ConversationSearchResult[]> {
   return request<ConversationSearchResult[]>(
     `/conversations/search?q=${encodeURIComponent(query)}`,

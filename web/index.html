@@ -5192,13 +5192,16 @@
       function renderConversationList() {
         const list = $("history-list");
         list.replaceChildren();
-        const query = state.historyQuery.trim().toLocaleLowerCase();
-        const items = state.historyItems.filter(
-          (item) =>
-            (state.historyFilter !== "favorites" || item.is_favorite) &&
-            (!state.historyTag || item.tags?.includes(state.historyTag)) &&
-            (!query || item.title.toLocaleLowerCase().includes(query)),
-        );
+        // 关键词过滤已由后端 /conversations/search 完成（标题 + 正文）。
+        // 搜索状态下直接展示后端结果，避免残留的收藏/标签筛选把结果清空。
+        const searching = Boolean(state.historyQuery.trim());
+        const items = searching
+          ? state.historyItems
+          : state.historyItems.filter(
+              (item) =>
+                (state.historyFilter !== "favorites" || item.is_favorite) &&
+                (!state.historyTag || item.tags?.includes(state.historyTag)),
+            );
         if (!items.length) {
           list.innerHTML = '<div class="history-empty">没有匹配的会话。</div>';
           return;
@@ -5639,9 +5642,12 @@
         applyConversationPersona(event.target.value),
       );
       $("apply-latest-persona").addEventListener("click", applyLatestPersona);
+      let historySearchTimer = 0;
       $("history-search").addEventListener("input", (event) => {
         state.historyQuery = event.target.value;
-        renderConversationList();
+        // 正文检索要扫服务端 checkpoint，防抖后再请求；输入过程中先沿用上一次结果。
+        clearTimeout(historySearchTimer);
+        historySearchTimer = setTimeout(() => loadConversations(), 280);
       });
       $("history-tag-filter").addEventListener("change", (event) => {
         state.historyTag = event.target.value;
