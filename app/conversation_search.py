@@ -18,10 +18,10 @@ def title_terms(value: str) -> list[str]:
     for match in _TITLE_SEGMENT.finditer(normalized):
         segment = match.group(0)
         if "\u3400" <= segment[0] <= "\u9fff":
-            if len(segment) == 1:
-                terms.add(segment)
-            else:
-                terms.update(segment[index : index + 2] for index in range(len(segment) - 1))
+            # 单字 + 双字都建索引：标题里只有单字时能命中，
+            # 用户搜单个汉字（如「猫」「球」）时也能命中长标题。
+            terms.update(segment)
+            terms.update(segment[index : index + 2] for index in range(len(segment) - 1))
         else:
             terms.add(segment[:64])
     return sorted(terms)

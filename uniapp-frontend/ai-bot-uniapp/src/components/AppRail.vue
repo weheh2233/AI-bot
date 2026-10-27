@@ -1,7 +1,9 @@
 <template>
   <view class="rail">
     <view class="brand">
-      <view class="brand-mark"><text>知</text></view>
+      <view class="brand-mark">
+        <image class="brand-mark-icon" src="/static/icons/brand-mark.png" mode="aspectFit" />
+      </view>
       <view>
         <view class="brand-name"><text>知序</text></view>
         <view class="brand-sub"><text>学习助手</text></view>

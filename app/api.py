@@ -27,11 +27,11 @@ from app.chat_streams import (
     ChatStreamRegistry,
 )
 from app.config import settings
-from app.conversation_search import sync_title_terms, title_terms
+from app.conversation_search import sync_title_terms
 from app.database import get_db
 from app.memory.long_term import store_context
 from app.memory.short_term import async_checkpointer_context, checkpointer_context
-from app.models import Conversation, ConversationSearchTerm, Persona, User
+from app.models import Conversation, Persona, User
 from app.routers import auth, documents, settings as settings_router
 from app.model_settings import (
     agent_for_connection, load_connection, mark_used, model_error_message,
@@ -896,6 +896,29 @@ def list_conversations(
     return conversations
 
 
+def _conversation_search_text(snapshot) -> str:
+    """把会话中的用户/助手文本拼成可搜索字符串（忽略图片占位和工具消息）。"""
+    parts: list[str] = []
+    for message in snapshot.values.get("messages", []):
+        if not isinstance(message, (HumanMessage, AIMessage)):
+            continue
+        text = _content_text(message.content)
+        if text and text != "[图片]":
+            parts.append(text)
+    return "\n".join(parts)
+
+
+def _search_snippet(text: str, query: str, width: int = 40) -> str:
+    """截取命中位置前后的文本，作为搜索结果预览。"""
+    index = text.casefold().find(query)
+    if index < 0:
+        return ""
+    start = max(0, index - width)
+    end = min(len(text), index + len(query) + width)
+    snippet = " ".join(text[start:end].split())
+    return f"{'…' if start > 0 else ''}{snippet}{'…' if end < len(text) else ''}"
+
+
 @app.get("/conversations/search", response_model=list[ConversationSearchResult])
 def search_conversations(
     request: Request,
@@ -903,48 +926,86 @@ def search_conversations(
     current: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Search conversation titles through a per-user inverted index."""
-    terms = title_terms(q)
-    if not terms:
+    """按标题和聊天内容搜索当前用户的会话（最近 100 个）。
+
+    标题走子串匹配，天然支持单字；内容扫描当前用户最近会话的 checkpoint，
+    忽略图片占位和工具消息。课设规模下足够快，会话量增大后应改为全文索引表。
+    """
+    normalized_query = unicodedata.normalize("NFKC", q).casefold().strip()
+    if not normalized_query:
         return []
-    thread_ids = db.execute(
-        select(ConversationSearchTerm.thread_id)
-        .where(
-            ConversationSearchTerm.owner_id == current.id,
-            ConversationSearchTerm.term.in_(terms),
-        )
-        .group_by(ConversationSearchTerm.thread_id)
-        .having(func.count(func.distinct(ConversationSearchTerm.term)) == len(terms))
-    ).scalars().all()
-    normalized_query = unicodedata.normalize("NFKC", q).casefold()
+
+    internal_prefix = f"user-{current.id}:"
     rows = db.execute(
-        select(Conversation)
-        .where(
+        text(
+            """
+            SELECT thread_id, updated_at
+            FROM (
+                SELECT DISTINCT ON (thread_id)
+                    thread_id,
+                    CAST(checkpoint ->> 'ts' AS timestamptz) AS updated_at
+                FROM checkpoints
+                WHERE thread_id LIKE :thread_pattern
+                  AND checkpoint_ns = ''
+                ORDER BY thread_id, checkpoint_id DESC
+            ) AS latest
+            ORDER BY updated_at DESC
+            LIMIT 100
+            """
+        ),
+        {"thread_pattern": f"{internal_prefix}%"},
+    ).all()
+
+    # 标题单独查一遍：不依赖分词，单字和多字都能命中。
+    title_rows = db.execute(
+        select(Conversation).where(
             Conversation.owner_id == current.id,
-            Conversation.thread_id.in_(thread_ids),
+            func.lower(Conversation.title).contains(normalized_query, autoescape=True),
         )
-        .order_by(Conversation.updated_at.desc())
     ).scalars().all()
-    matches = [
-        row for row in rows
-        if normalized_query in unicodedata.normalize("NFKC", row.title).casefold()
-    ]
-    results = []
-    for row in matches[:50]:
-        thread_id = row.thread_id.removeprefix(f"user-{current.id}:")
+    title_hits = {row.thread_id for row in title_rows}
+
+    matched: dict[str, dict] = {}
+    for internal_thread_id, updated_at in rows:
+        thread_id = internal_thread_id.removeprefix(internal_prefix)
+        if internal_thread_id in title_hits:
+            matched[thread_id] = {"updated_at": updated_at, "snippet": ""}
+            continue
         config = _config(current, thread_id)
+        try:
+            snapshot = request.app.state.agent.get_state(config)
+        except Exception:  # noqa: BLE001 - 单个会话读取失败不应拖垮整个搜索
+            continue
+        content_text = _conversation_search_text(snapshot)
+        if normalized_query in content_text.casefold():
+            matched[thread_id] = {
+                "updated_at": updated_at,
+                "snippet": _search_snippet(content_text, normalized_query),
+            }
+
+    results = []
+    ordered = sorted(
+        matched.items(), key=lambda item: item[1]["updated_at"], reverse=True
+    )
+    for thread_id, info in ordered[:50]:
+        config = _config(current, thread_id)
+        updated_at = info["updated_at"]
         snapshot = request.app.state.agent.get_state(config)
         messages = _conversation_messages_from_history(
-            request.app.state.agent, config, snapshot, timestamp=row.updated_at
+            request.app.state.agent, config, snapshot, timestamp=updated_at
+        )
+        conversation = _fixed_title(
+            db, thread_id, f"{internal_prefix}{thread_id}",
+            current.id, snapshot, messages,
         )
         summary = _conversation_summary(
-            thread_id, row.updated_at, snapshot, row.title, row, messages
+            thread_id, updated_at, snapshot,
+            conversation.title if conversation is not None else "新会话",
+            conversation, messages,
         )
-        results.append(
-            ConversationSearchResult(
-                **summary.model_dump(),
-            )
-        )
+        if info["snippet"]:
+            summary = summary.model_copy(update={"preview": info["snippet"]})
+        results.append(ConversationSearchResult(**summary.model_dump()))
     return results
 
 
