@@ -20,4 +20,4 @@ npm-debug.log*
 pnpm-debug.log*
 
 #其他文件
-.archify/
+.archify
